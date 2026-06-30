@@ -1,0 +1,4 @@
+Model,Accuracy,Macro F1,Negative F1,Neutral F1,Positive F1,Misclassified
+LSTM Before SMOTE,90.51%,67.99%,0.52,0.56,0.95,30
+LSTM After SMOTE,91.77%,72.42%,0.55,0.67,0.96,26
+LSTM SMOTE + Scheduler,90.51%,66.95%,0.57,0.48,0.96,30
