@@ -21,7 +21,7 @@ NUM_CLASSES = 3
 # Training
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
-NUM_EPOCHS = 10
+NUM_EPOCHS = 15
 
 # Output
 MODEL_SAVE_PATH = "../models/lensword_model.pt"
