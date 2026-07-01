@@ -16,3 +16,4 @@ uvicorn
 fastapi
 streamlit
 imbalanced-learn
+datasets
