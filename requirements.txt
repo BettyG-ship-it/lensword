@@ -17,3 +17,5 @@ fastapi
 streamlit
 imbalanced-learn
 datasets
+chromaDB
+sentence-transformers
