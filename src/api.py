@@ -1,6 +1,8 @@
-# LensWord - FastAPI Sentiment Prediction API (Single Model Version)
+# LensWord - FastAPI Sentiment Prediction API with RAG
+# Uses Bidirectional LSTM for sentiment + RAG for response suggestions
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import torch
 import torch.nn as nn
@@ -8,15 +10,26 @@ import pickle
 import re
 import os
 import sys
+import pandas as pd
+import chromadb
+from sentence_transformers import SentenceTransformer
 
-# Add project root to path so we can import config.py
+# Add project root to path
 sys.path.append(os.path.abspath('..'))
 from src.config import *
 
-# Create the FastAPI app
-app = FastAPI(title="LensWord Sentiment Analysis API")
+# Create FastAPI app
+app = FastAPI(title="LensWord Sentiment Analysis API with RAG")
 
-# Define the LSTM model architecture
+# Allow requests from index.html
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ── LSTM Model Architecture ──────────────────────────────────
 class LensWordLSTM(nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_dim, num_layers,
                  num_classes, dropout):
@@ -35,11 +48,11 @@ class LensWordLSTM(nn.Module):
         output = self.fc(hidden)
         return output
 
-# Load the vocabulary
+# ── Load vocabulary ──────────────────────────────────────────
 with open('../data/word2idx.pkl', 'rb') as f:
     word2idx = pickle.load(f)
 
-# Load the trained model
+# ── Load LSTM model ──────────────────────────────────────────
 model = LensWordLSTM(
     vocab_size=MAX_VOCAB_SIZE,
     embedding_dim=EMBEDDING_DIM,
@@ -53,14 +66,37 @@ model.load_state_dict(torch.load(
     map_location=torch.device('cpu')
 ))
 model.eval()
+print("LSTM model loaded successfully!")
 
-print("Model loaded successfully!")
+# ── Setup RAG ────────────────────────────────────────────────
+print("Setting up RAG knowledge base...")
 
-# Request format
-class ReviewRequest(BaseModel):
-    text: str
+# Load knowledge base
+kb_path = os.path.join(os.path.dirname(__file__), 'knowledge_base.csv')
+kb_df = pd.read_csv(kb_path)
 
-# Text preprocessing functions
+# Load sentence transformer for embeddings
+embedder = SentenceTransformer('all-MiniLM-L6-v2')
+
+# Setup ChromaDB
+chroma_client = chromadb.Client()
+collection = chroma_client.create_collection(name="lensword_kb")
+
+# Add knowledge base to ChromaDB
+documents = kb_df['complaint_example'].tolist()
+responses = kb_df['response'].tolist()
+ids = [f"doc_{i}" for i in range(len(documents))]
+embeddings = embedder.encode(documents).tolist()
+
+collection.add(
+    documents=documents,
+    embeddings=embeddings,
+    ids=ids,
+    metadatas=[{"response": r} for r in responses]
+)
+print(f"RAG knowledge base loaded with {len(documents)} entries!")
+
+# ── Text preprocessing functions ─────────────────────────────
 def clean_text(text):
     text = str(text).lower()
     text = re.sub(r'[^a-z\s]', '', text)
@@ -69,8 +105,7 @@ def clean_text(text):
 
 def text_to_sequence(text):
     words = text.split()
-    sequence = [word2idx.get(word, word2idx['<UNK>']) for word in words]
-    return sequence
+    return [word2idx.get(word, word2idx['<UNK>']) for word in words]
 
 def pad_sequence(sequence, max_length):
     if len(sequence) < max_length:
@@ -79,25 +114,49 @@ def pad_sequence(sequence, max_length):
         sequence = sequence[:max_length]
     return sequence
 
-# Health check endpoint
+# ── RAG response retrieval ───────────────────────────────────
+def get_rag_response(review_text, sentiment):
+    if sentiment == 'Positive':
+        return "Thank you so much for your wonderful feedback! We are thrilled you are enjoying your purchase. We look forward to serving you again soon."
+
+    query_embedding = embedder.encode([review_text]).tolist()
+    results = collection.query(
+        query_embeddings=query_embedding,
+        n_results=1
+    )
+
+    if results and results['metadatas']:
+        return results['metadatas'][0][0]['response']
+
+    fallback = {
+        'Negative': 'We are sorry to hear about your experience. A customer service representative will contact you within 24 hours.',
+        'Neutral': 'Thank you for your feedback. We would love to know how we can improve your experience further.'
+    }
+    return fallback[sentiment]
+
+# ── Request format ───────────────────────────────────────────
+class ReviewRequest(BaseModel):
+    text: str
+
+# ── Health check endpoint ────────────────────────────────────
 @app.get("/")
 def home():
     return {
-        "message": "LensWord Sentiment Analysis API is running!",
-        "model": "Bidirectional LSTM",
+        "message": "LensWord Sentiment Analysis API with RAG is running!",
+        "model": "Bidirectional LSTM + RAG Response System",
         "classes": ["Negative", "Neutral", "Positive"]
     }
 
-# Prediction endpoint with action suggestion
+# ── Prediction endpoint ──────────────────────────────────────
 @app.post("/predict")
 def predict_sentiment(request: ReviewRequest):
-    # Preprocess
+    # Step 1 - Preprocess text
     cleaned = clean_text(request.text)
     sequence = text_to_sequence(cleaned)
     padded = pad_sequence(sequence, MAX_SEQ_LENGTH)
     input_tensor = torch.tensor([padded], dtype=torch.long)
 
-    # Run model
+    # Step 2 - LSTM prediction
     with torch.no_grad():
         output = model(input_tensor)
         probs = torch.softmax(output, dim=1)
@@ -107,23 +166,14 @@ def predict_sentiment(request: ReviewRequest):
     labels = ['Negative', 'Neutral', 'Positive']
     sentiment = labels[predicted_class]
 
-    # Action suggestion based on sentiment
+    # Step 3 - RAG response retrieval
+    suggested_response = get_rag_response(request.text, sentiment)
+
+    # Step 4 - Action based on sentiment
     actions = {
-        'Positive': {
-            'action': 'none',
-            'priority': 'LOW',
-            'suggested_response': 'Thank you for your positive feedback! We are glad you enjoyed your experience.'
-        },
-        'Neutral': {
-            'action': 'follow_up',
-            'priority': 'MEDIUM',
-            'suggested_response': 'Thank you for your feedback. We would love to know how we can improve your experience further.'
-        },
-        'Negative': {
-            'action': 'escalate',
-            'priority': 'HIGH',
-            'suggested_response': 'We are sorry to hear about your experience. A customer service representative will contact you within 24 hours to resolve this issue.'
-        }
+        'Positive': {'action': 'none', 'priority': 'LOW'},
+        'Neutral': {'action': 'follow_up', 'priority': 'MEDIUM'},
+        'Negative': {'action': 'escalate', 'priority': 'HIGH'}
     }
 
     return {
@@ -137,5 +187,5 @@ def predict_sentiment(request: ReviewRequest):
         },
         "action": actions[sentiment]['action'],
         "priority": actions[sentiment]['priority'],
-        "suggested_response": actions[sentiment]['suggested_response']
+        "suggested_response": suggested_response
     }
