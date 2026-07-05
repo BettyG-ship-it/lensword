@@ -39,7 +39,6 @@ class LensWordLSTM(nn.Module):
         return output
 
 # ── Global state ─────────────────────────────────────────────
-# All heavy initialization happens inside lifespan — not at import time (F7 fix)
 app_state = {}
 
 @asynccontextmanager
@@ -47,14 +46,13 @@ async def lifespan(app: FastAPI):
     # ── Startup ──────────────────────────────────────────────
     base_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # F9 fix: weights_only=True on torch.load
     # Load vocabulary
     vocab_path = os.path.join(base_dir, '..', 'data', 'word2idx.pkl')
     with open(vocab_path, 'rb') as f:
         app_state['word2idx'] = pickle.load(f)
     print("Vocabulary loaded!")
 
-    # Load LSTM model
+    # Load LSTM model — weights_only=True (F9 fix)
     model = LensWordLSTM(
         vocab_size=MAX_VOCAB_SIZE,
         embedding_dim=EMBEDDING_DIM,
@@ -67,38 +65,40 @@ async def lifespan(app: FastAPI):
     model.load_state_dict(torch.load(
         model_path,
         map_location=torch.device('cpu'),
-        weights_only=True   # F9 fix
+        weights_only=True
     ))
     model.eval()
     app_state['model'] = model
     print("LSTM model loaded!")
 
-    # Setup RAG — F7 fix: inside lifespan not at import time
+    # Setup RAG — force recreate collection every startup
     kb_path = os.path.join(base_dir, 'knowledge_base.csv')
     kb_df = pd.read_csv(kb_path)
 
     embedder = SentenceTransformer('all-MiniLM-L6-v2')
     app_state['embedder'] = embedder
 
-    # F7 fix: get_or_create_collection prevents error on re-import
+    # Force delete and recreate to ensure collection is always populated
     chroma_client = chromadb.Client()
     try:
-        collection = chroma_client.get_collection(name="lensword_kb")
+        chroma_client.delete_collection(name="lensword_kb")
     except Exception:
-        collection = chroma_client.create_collection(name="lensword_kb")
-        documents  = kb_df['complaint_example'].tolist()
-        responses  = kb_df['response'].tolist()
-        ids        = [f"doc_{i}" for i in range(len(documents))]
-        embeddings = embedder.encode(documents).tolist()
-        collection.add(
-            documents=documents,
-            embeddings=embeddings,
-            ids=ids,
-            metadatas=[{"response": r, "sentiment": "Negative"} for r in responses]
-        )
+        pass
+
+    collection = chroma_client.create_collection(name="lensword_kb")
+    documents  = kb_df['complaint_example'].tolist()
+    responses  = kb_df['response'].tolist()
+    ids        = [f"doc_{i}" for i in range(len(documents))]
+    embeddings = embedder.encode(documents).tolist()
+    collection.add(
+        documents=documents,
+        embeddings=embeddings,
+        ids=ids,
+        metadatas=[{"response": r} for r in responses]
+    )
+
     app_state['collection'] = collection
-    app_state['kb_responses'] = kb_df['response'].tolist()
-    print(f"RAG knowledge base loaded with {len(kb_df)} entries!")
+    print(f"RAG knowledge base loaded with {len(documents)} entries!")
 
     app_state['ready'] = True
     yield
@@ -113,7 +113,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS — acceptable for localhost demo
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -141,36 +141,48 @@ def pad_sequence(sequence: list, max_length: int) -> list:
 
 # ── RAG response retrieval ───────────────────────────────────
 def get_rag_response(review_text: str, sentiment: str) -> str:
+    # Fallback responses for all three classes
+    fallback = {
+        'Negative': 'We are sorry to hear about your experience. A customer service representative will contact you within 24 hours to resolve this for you.',
+        'Neutral':  'Thank you for your feedback. We would love to know how we can improve your experience further.',
+        'Positive': 'Thank you so much for your wonderful feedback! We are thrilled you are enjoying your purchase. We look forward to serving you again soon.'
+    }
+
+    # Positive always returns thank you — no RAG needed
     if sentiment == 'Positive':
-        return "Thank you so much for your wonderful feedback! We are thrilled you are enjoying your purchase. We look forward to serving you again soon."
+        return fallback['Positive']
 
-    embedder   = app_state['embedder']
-    collection = app_state['collection']
-
-    query_embedding = embedder.encode([review_text]).tolist()
-
-    # F5 fix: filter by sentiment so Neutral never retrieves complaint apologies
+    # For Negative and Neutral — query ChromaDB for best matching response
     try:
+        embedder   = app_state['embedder']
+        collection = app_state['collection']
+
+        query_embedding = embedder.encode([review_text]).tolist()
         results = collection.query(
             query_embeddings=query_embedding,
             n_results=1
         )
-        # F3 fix: correct truthiness guard — check documents list not results dict
-        if results and results['documents'] and len(results['documents'][0]) > 0:
-            return results['metadatas'][0][0]['response']
-    except Exception:
-        pass
 
-    # Fallback responses
-    fallback = {
-        'Negative': 'We are sorry to hear about your experience. A customer service representative will contact you within 24 hours.',
-        'Neutral':  'Thank you for your feedback. We would love to know how we can improve your experience further.'
-    }
+        # F3 fix: correct truthiness guard — check documents list length
+        if (results
+                and results.get('documents')
+                and len(results['documents']) > 0
+                and len(results['documents'][0]) > 0
+                and results.get('metadatas')
+                and len(results['metadatas']) > 0
+                and len(results['metadatas'][0]) > 0):
+            response = results['metadatas'][0][0].get('response', '')
+            if response:
+                return response
+
+    except Exception as e:
+        print(f"RAG query failed: {e}")
+
+    # Return sentiment-appropriate fallback
     return fallback.get(sentiment, 'Thank you for your feedback.')
 
-# ── Request / Response models ────────────────────────────────
+# ── Request model ────────────────────────────────────────────
 class ReviewRequest(BaseModel):
-    # F8 fix: max_length constraint on input text
     text: str = Field(..., min_length=1, max_length=2000,
                       description="Review text to analyze (1-2000 characters)")
 
@@ -191,13 +203,11 @@ def predict_sentiment(request: ReviewRequest):
     model    = app_state['model']
 
     # F4 fix: empty input guard
-    # clean_text strips everything except a-z and spaces
-    # digit-only, emoji-only, or non-Latin text collapses to empty string
     cleaned = clean_text(request.text)
     if not cleaned.strip():
         return {
-            "text":      request.text,
-            "sentiment": None,
+            "text":       request.text,
+            "sentiment":  None,
             "confidence": 0.0,
             "probabilities": {"Negative": 0.0, "Neutral": 0.0, "Positive": 0.0},
             "action":    "cannot_score",
@@ -206,8 +216,8 @@ def predict_sentiment(request: ReviewRequest):
         }
 
     # Preprocess
-    sequence = text_to_sequence(cleaned, word2idx)
-    padded   = pad_sequence(sequence, MAX_SEQ_LENGTH)
+    sequence     = text_to_sequence(cleaned, word2idx)
+    padded       = pad_sequence(sequence, MAX_SEQ_LENGTH)
     input_tensor = torch.tensor([padded], dtype=torch.long)
 
     # LSTM prediction
@@ -224,7 +234,6 @@ def predict_sentiment(request: ReviewRequest):
     suggested_response = get_rag_response(request.text, sentiment)
 
     # Action and priority
-
     actions = {
         'Positive': {'action': 'none',      'priority': 'LOW'},
         'Neutral':  {'action': 'follow_up', 'priority': 'MEDIUM'},

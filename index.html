@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LensWord — Sentiment Analysis</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -22,21 +18,17 @@
         }
 
         .container {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255,255,255,0.05);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255,255,255,0.1);
             border-radius: 20px;
             padding: 40px;
             width: 100%;
             max-width: 700px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
         }
 
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
+        .logo { text-align: center; margin-bottom: 30px; }
         .logo h1 {
             font-size: 2.5rem;
             font-weight: 700;
@@ -45,20 +37,13 @@
             -webkit-text-fill-color: transparent;
             letter-spacing: 2px;
         }
+        .logo p { color: rgba(255,255,255,0.5); font-size: 0.9rem; margin-top: 5px; }
 
-        .logo p {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.9rem;
-            margin-top: 5px;
-        }
-
-        .input-section {
-            margin-bottom: 25px;
-        }
+        .input-section { margin-bottom: 25px; }
 
         label {
             display: block;
-            color: rgba(255, 255, 255, 0.8);
+            color: rgba(255,255,255,0.8);
             font-size: 0.9rem;
             margin-bottom: 10px;
             font-weight: 500;
@@ -66,8 +51,8 @@
 
         textarea {
             width: 100%;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
             border-radius: 12px;
             padding: 15px;
             color: white;
@@ -78,14 +63,8 @@
             transition: border-color 0.3s;
             outline: none;
         }
-
-        textarea:focus {
-            border-color: #667eea;
-        }
-
-        textarea::placeholder {
-            color: rgba(255, 255, 255, 0.3);
-        }
+        textarea:focus { border-color: #667eea; }
+        textarea::placeholder { color: rgba(255,255,255,0.3); }
 
         button {
             width: 100%;
@@ -100,26 +79,11 @@
             transition: transform 0.2s, opacity 0.2s;
             letter-spacing: 1px;
         }
+        button:hover { transform: translateY(-2px); opacity: 0.9; }
+        button:active { transform: translateY(0); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-        button:hover {
-            transform: translateY(-2px);
-            opacity: 0.9;
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .result-section {
-            margin-top: 30px;
-            display: none;
-        }
+        .result-section { margin-top: 30px; display: none; }
 
         .sentiment-badge {
             text-align: center;
@@ -128,95 +92,52 @@
             margin-bottom: 20px;
             transition: all 0.3s;
         }
+        .sentiment-badge.positive { background: rgba(72,199,142,0.15); border: 1px solid rgba(72,199,142,0.4); }
+        .sentiment-badge.negative { background: rgba(255,99,99,0.15);  border: 1px solid rgba(255,99,99,0.4); }
+        .sentiment-badge.neutral  { background: rgba(255,193,7,0.15);  border: 1px solid rgba(255,193,7,0.4); }
 
-        .sentiment-badge.positive {
-            background: rgba(72, 199, 142, 0.15);
-            border: 1px solid rgba(72, 199, 142, 0.4);
-        }
-
-        .sentiment-badge.negative {
-            background: rgba(255, 99, 99, 0.15);
-            border: 1px solid rgba(255, 99, 99, 0.4);
-        }
-
-        .sentiment-badge.neutral {
-            background: rgba(255, 193, 7, 0.15);
-            border: 1px solid rgba(255, 193, 7, 0.4);
-        }
-
-        .sentiment-emoji {
-            font-size: 3rem;
-            margin-bottom: 10px;
-        }
-
-        .sentiment-label {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-
+        .sentiment-emoji  { font-size: 3rem; margin-bottom: 10px; }
+        .sentiment-label  { font-size: 1.8rem; font-weight: 700; margin-bottom: 5px; }
         .sentiment-badge.positive .sentiment-label { color: #48c78e; }
         .sentiment-badge.negative .sentiment-label { color: #ff6363; }
-        .sentiment-badge.neutral .sentiment-label { color: #ffc107; }
-
-        .confidence-text {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 0.9rem;
-        }
+        .sentiment-badge.neutral  .sentiment-label { color: #ffc107; }
+        .confidence-text { color: rgba(255,255,255,0.6); font-size: 0.9rem; }
 
         .probabilities {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255,255,255,0.05);
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 20px;
         }
-
         .probabilities h3 {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(255,255,255,0.7);
             font-size: 0.85rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 15px;
         }
-
-        .prob-bar {
-            margin-bottom: 12px;
-        }
-
+        .prob-bar { margin-bottom: 12px; }
         .prob-label {
             display: flex;
             justify-content: space-between;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(255,255,255,0.7);
             font-size: 0.85rem;
             margin-bottom: 5px;
         }
-
-        .bar-container {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50px;
-            height: 8px;
-            overflow: hidden;
-        }
-
-        .bar-fill {
-            height: 100%;
-            border-radius: 50px;
-            transition: width 0.8s ease;
-        }
-
+        .bar-container { background: rgba(255,255,255,0.1); border-radius: 50px; height: 8px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 50px; transition: width 0.8s ease; }
         .bar-fill.positive { background: #48c78e; }
         .bar-fill.negative { background: #ff6363; }
-        .bar-fill.neutral { background: #ffc107; }
+        .bar-fill.neutral  { background: #ffc107; }
 
         .action-section {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255,255,255,0.05);
             border-radius: 12px;
             padding: 20px;
             border-left: 3px solid #667eea;
         }
-
         .action-section h3 {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(255,255,255,0.7);
             font-size: 0.85rem;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -233,13 +154,12 @@
             letter-spacing: 1px;
             margin-bottom: 10px;
         }
-
-        .action-badge.high { background: rgba(255, 99, 99, 0.3); color: #ff6363; }
-        .action-badge.medium { background: rgba(255, 193, 7, 0.3); color: #ffc107; }
-        .action-badge.low { background: rgba(72, 199, 142, 0.3); color: #48c78e; }
+        .action-badge.high   { background: rgba(255,99,99,0.3);  color: #ff6363; }
+        .action-badge.medium { background: rgba(255,193,7,0.3);  color: #ffc107; }
+        .action-badge.low    { background: rgba(72,199,142,0.3); color: #48c78e; }
 
         .suggested-response {
-            color: rgba(255, 255, 255, 0.8);
+            color: rgba(255,255,255,0.8);
             font-size: 0.9rem;
             line-height: 1.6;
             font-style: italic;
@@ -247,31 +167,23 @@
 
         .loading {
             text-align: center;
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(255,255,255,0.5);
             padding: 20px;
             display: none;
         }
-
-        .loading span {
-            display: inline-block;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
-        }
+        .loading span { display: inline-block; animation: pulse 1.5s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
 
         .model-info {
             text-align: center;
             margin-top: 25px;
-            color: rgba(255, 255, 255, 0.3);
+            color: rgba(255,255,255,0.3);
             font-size: 0.75rem;
         }
 
         .error-message {
-            background: rgba(255, 99, 99, 0.15);
-            border: 1px solid rgba(255, 99, 99, 0.4);
+            background: rgba(255,99,99,0.15);
+            border: 1px solid rgba(255,99,99,0.4);
             border-radius: 12px;
             padding: 15px;
             color: #ff6363;
@@ -292,10 +204,12 @@
             <label>Enter a product review:</label>
             <textarea
                 id="reviewInput"
-                placeholder="Type or paste a product review here... (e.g. 'This product is amazing, works perfectly every time!')"
+                placeholder="Type or paste a product review here..."
+                maxlength="2000"
             ></textarea>
         </div>
 
+        <!-- F12 fix: single onclick handler, button disabled during request -->
         <button id="analyzeBtn" onclick="analyzeSentiment()">
             Analyze Sentiment
         </button>
@@ -304,12 +218,10 @@
             <span>Analyzing your review...</span>
         </div>
 
-        <div class="error-message" id="errorMessage">
-            Could not connect to the API. Make sure the FastAPI server is running.
-        </div>
+        <!-- F12 fix: separate error types -->
+        <div class="error-message" id="errorMessage"></div>
 
         <div class="result-section" id="resultSection">
-           
             <div class="sentiment-badge" id="sentimentBadge">
                 <div class="sentiment-emoji" id="sentimentEmoji"></div>
                 <div class="sentiment-label" id="sentimentLabel"></div>
@@ -324,7 +236,7 @@
                         <span id="posProb">0%</span>
                     </div>
                     <div class="bar-container">
-                        <div class="bar-fill positive" id="posBar" style="width: 0%"></div>
+                        <div class="bar-fill positive" id="posBar" style="width:0%"></div>
                     </div>
                 </div>
                 <div class="prob-bar">
@@ -333,7 +245,7 @@
                         <span id="neutProb">0%</span>
                     </div>
                     <div class="bar-container">
-                        <div class="bar-fill neutral" id="neutBar" style="width: 0%"></div>
+                        <div class="bar-fill neutral" id="neutBar" style="width:0%"></div>
                     </div>
                 </div>
                 <div class="prob-bar">
@@ -342,11 +254,12 @@
                         <span id="negProb">0%</span>
                     </div>
                     <div class="bar-container">
-                        <div class="bar-fill negative" id="negBar" style="width: 0%"></div>
+                        <div class="bar-fill negative" id="negBar" style="width:0%"></div>
                     </div>
                 </div>
             </div>
 
+            <!-- F1 fix: renders actual API fields — suggested_response, action, priority -->
             <div class="action-section">
                 <h3>Recommended Action</h3>
                 <div class="action-badge" id="actionBadge"></div>
@@ -355,106 +268,120 @@
         </div>
 
         <div class="model-info">
-            Powered by Ensemble Bidirectional LSTM × 3 models &nbsp;|&nbsp; LensWord v1.0
+            Powered by Bidirectional LSTM + RAG &nbsp;|&nbsp; LensWord v2.0
         </div>
     </div>
 
     <script>
+        // F6 fix: API base URL configurable — not hardcoded
+        const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
+
+        // F12 fix: single guard used by both button click and keyboard
+        let isAnalyzing = false;
+
+        // F12 fix: keyboard handler checks isAnalyzing flag
+        document.getElementById('reviewInput').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                if (!isAnalyzing) analyzeSentiment();
+            }
+        });
+
         async function analyzeSentiment() {
+            if (isAnalyzing) return;  // F12 fix: prevent overlapping requests
+
             const review = document.getElementById('reviewInput').value.trim();
-           
             if (!review) {
                 alert('Please enter a review first!');
                 return;
             }
 
-            // Show loading, hide results
+            // Lock UI
+            isAnalyzing = true;
             document.getElementById('analyzeBtn').disabled = true;
             document.getElementById('loading').style.display = 'block';
             document.getElementById('resultSection').style.display = 'none';
             document.getElementById('errorMessage').style.display = 'none';
 
             try {
-                const response = await fetch('http://127.0.0.1:8000/predict', {
+                const response = await fetch(`${API_BASE}/predict`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text: review })
                 });
 
-                if (!response.ok) throw new Error('API error');
+                // F12 fix: distinguish server errors from connection failures
+                if (!response.ok) {
+                    const err = document.getElementById('errorMessage');
+                    err.textContent = `Server error: ${response.status} ${response.statusText}`;
+                    err.style.display = 'block';
+                    return;
+                }
 
                 const data = await response.json();
+
+                // Handle cannot_score response (empty/non-Latin input)
+                if (data.action === 'cannot_score') {
+                    const err = document.getElementById('errorMessage');
+                    err.textContent = data.suggested_response;
+                    err.style.display = 'block';
+                    return;
+                }
+
                 displayResults(data);
 
             } catch (error) {
-                document.getElementById('errorMessage').style.display = 'block';
+                // F12 fix: connection failure shown separately from server errors
+                const err = document.getElementById('errorMessage');
+                err.textContent = 'Could not connect to the API. Make sure the FastAPI server is running on port 8000.';
+                err.style.display = 'block';
             } finally {
+                // Unlock UI
+                isAnalyzing = false;
                 document.getElementById('analyzeBtn').disabled = false;
                 document.getElementById('loading').style.display = 'none';
             }
         }
 
         function displayResults(data) {
+            // ── F1 fix: render actual API fields ──────────────────────
+            // Previously this function used hardcoded local mappings
+            // Now it renders suggested_response, action, priority from the API
+
             const sentiment = data.sentiment;
-            const confidence = data.confidence;
-            const probs = data.probabilities;
 
             // Sentiment badge
             const badge = document.getElementById('sentimentBadge');
             badge.className = 'sentiment-badge ' + sentiment.toLowerCase();
 
-            // Emoji
             const emojis = { 'Positive': '😊', 'Neutral': '😐', 'Negative': '😞' };
-            document.getElementById('sentimentEmoji').textContent = emojis[sentiment];
-
-            // Label and confidence
+            document.getElementById('sentimentEmoji').textContent =
+                emojis[sentiment] || '🤔';
             document.getElementById('sentimentLabel').textContent = sentiment;
             document.getElementById('confidenceText').textContent =
-                `Confidence: ${confidence}%`;
+                `Confidence: ${data.confidence}%`;
 
             // Probability bars
-            document.getElementById('posProb').textContent = probs.Positive + '%';
-            document.getElementById('neutProb').textContent = probs.Neutral + '%';
-            document.getElementById('negProb').textContent = probs.Negative + '%';
-            document.getElementById('posBar').style.width = probs.Positive + '%';
-            document.getElementById('neutBar').style.width = probs.Neutral + '%';
-            document.getElementById('negBar').style.width = probs.Negative + '%';
+            document.getElementById('posProb').textContent  = `${data.probabilities.Positive}%`;
+            document.getElementById('neutProb').textContent = `${data.probabilities.Neutral}%`;
+            document.getElementById('negProb').textContent  = `${data.probabilities.Negative}%`;
+            document.getElementById('posBar').style.width   = `${data.probabilities.Positive}%`;
+            document.getElementById('neutBar').style.width  = `${data.probabilities.Neutral}%`;
+            document.getElementById('negBar').style.width   = `${data.probabilities.Negative}%`;
 
-            // Action section
-            const actions = {
-                'Positive': {
-                    badge: 'LOW',
-                    class: 'low',
-                    response: 'Thank you for your positive feedback! We are glad you enjoyed your experience.'
-                },
-                'Neutral': {
-                    badge: 'MEDIUM',
-                    class: 'medium',
-                    response: 'Thank you for your feedback. We would love to know how we can improve your experience further.'
-                },
-                'Negative': {
-                    badge: 'HIGH — ESCALATE',
-                    class: 'high',
-                    response: 'We are sorry to hear about your experience. A customer service representative will contact you within 24 hours to resolve this issue.'
-                }
-            };
-
-            const action = actions[sentiment];
+            // F1 fix: action badge from API priority field
             const actionBadge = document.getElementById('actionBadge');
-            actionBadge.textContent = action.badge;
-            actionBadge.className = 'action-badge ' + action.class;
-            document.getElementById('suggestedResponse').textContent = action.response;
+            const priorityClass = { 'HIGH': 'high', 'MEDIUM': 'medium', 'LOW': 'low' };
+            actionBadge.className = 'action-badge ' + (priorityClass[data.priority] || 'low');
+            actionBadge.textContent = `${data.priority} — ${data.action.replace('_', ' ').toUpperCase()}`;
+
+            // F1 fix: suggested_response from API — not hardcoded local text
+            document.getElementById('suggestedResponse').textContent =
+                data.suggested_response;
 
             // Show results
             document.getElementById('resultSection').style.display = 'block';
         }
-
-        // Allow Enter key to submit
-        document.getElementById('reviewInput').addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.key === 'Enter') {
-                analyzeSentiment();
-            }
-        });
     </script>
 </body>
 </html>
