@@ -15,22 +15,42 @@ A star rating tells you HOW unhappy a customer is — LensWord tells you **WHY**
 
 ---
 
-## Key Results
+## Honest Results (Clean Pipeline)
 
 | Model | Accuracy | Macro F1 |
 |---|---|---|
-| **LensWord LSTM (Final)** | **88.85%** | **88.40%** |
-| HuggingFace NLPTown | 73.00% | 67.89% |
-| HuggingFace LiYuan (Amazon) | 70.00% | 63.86% |
-| HuggingFace CardiffNLP | 67.00% | 56.70% |
+| **LensWord LSTM (trained, in-domain)** | **72.62%** | **0.7263** |
+| NLPTown (zero-shot) | 72.52% | 0.7115 |
+| LiYuan Amazon (zero-shot) | 64.47% | 0.6241 |
+| CardiffNLP Twitter (zero-shot) | 60.68% | 0.5399 |
 
-> LensWord outperforms all three pretrained HuggingFace models on both accuracy and Macro F1.
+> **Note:** LensWord was trained on this distribution. HuggingFace models are evaluated zero-shot — they were never shown our data or label rules. The comparison demonstrates domain-specific training value. All models evaluated on the same 1,030 held-out test rows.
+
+### Per-Class F1 Scores
+
+| Class | F1 Score |
+|---|---|
+| Negative | 0.7467 |
+| Neutral | 0.6396 |
+| Positive | 0.7925 |
+| **Macro F1** | **0.7263** |
+
+---
+
+## Why Numbers Changed
+
+Earlier runs reported 88.85% accuracy and 88.40% Macro F1. Following a full pipeline audit these figures were found to be inflated due to:
+
+- **Duplicate leakage** — ~6,000 duplicate rows distributed across train and test
+- **Vocabulary leakage** — vocabulary fitted on all data including test partition  
+- **Wrong checkpoint** — model selected on accuracy not Macro F1
+- **Invalid SMOTE** — applied to token-index sequences (nominal feature space)
+
+The corrected figures represent honest performance on genuinely unseen, uncontaminated data.
 
 ---
 
 ## Dual Interface System
-
-LensWord provides two separate interfaces serving two different audiences:
 
 ### 1. Business Dashboard — `index.html`
 For internal business and customer service teams.
@@ -40,8 +60,8 @@ For internal business and customer service teams.
 **Features:**
 - Real-time sentiment classification with color-coded badge
 - Confidence score and probability breakdown for all three classes
-- Priority level (LOW / MEDIUM / HIGH)
-- RAG-powered suggested customer service response
+- Priority level (LOW / MEDIUM / HIGH) from API
+- RAG-powered suggested customer service response from API
 
 ### 2. Customer Chat Interface — `customer.html`
 For direct customer interaction after submitting a review.
@@ -49,34 +69,44 @@ For direct customer interaction after submitting a review.
 ![Customer Chat](screenshots/customer_chat.png)
 
 **Features:**
-- Customer submits their review naturally
+- Customer submits review naturally
 - System detects sentiment silently — customer never sees technical outputs
-- 5-step empathetic conversation flow based on detected sentiment:
-  - **Negative** → empathetic resolution with replacement/refund options
-  - **Neutral** → feedback collection with follow-up questions
-  - **Positive** → warm appreciation with loyalty program offer
-- Confidence threshold: if model confidence below 75%, asks customer directly
+- 5-step empathetic conversation flow based on detected sentiment
+- 75% confidence threshold — low confidence predictions ask customer directly
+- **Negative** → empathetic resolution with replacement/refund options
+- **Neutral** → feedback collection with follow-up questions
+- **Positive** → warm appreciation with loyalty program offer
 
 ---
 
 ## Architecture
 
 ```
-User Review
+Review text
         ↓
-FastAPI /predict endpoint (api.py)
+Tokenization → word2idx vocabulary (4,340 words, fitted on training only)
         ↓
-Text Preprocessing (clean → tokenize → pad to 50 tokens)
+Padding to 50 tokens
         ↓
-Bidirectional LSTM (2 layers, 872,451 parameters)
+Embedding Layer [50] → [50, 64]
         ↓
-Sentiment Prediction (Negative / Neutral / Positive)
+BiLSTM Layer 1 (forward + backward) → [50, 128]
         ↓
-RAG System (ChromaDB + SentenceTransformers all-MiniLM-L6-v2)
+BiLSTM Layer 2 → final hidden state [128]
+        ↓
+Dropout (p=0.4)
+        ↓
+Fully Connected → [3 logits]
+        ↓
+Softmax → [3 probabilities]
+        ↓
+Sentiment (Negative / Neutral / Positive)
+        ↓
+RAG System (SentenceTransformer + ChromaDB, 33 entries)
         ↓
 Suggested Customer Service Response
         ↓
-index.html (business dashboard) or customer.html (chat interface)
+index.html (business) or customer.html (customer chat)
 ```
 
 ---
@@ -86,33 +116,34 @@ index.html (business dashboard) or customer.html (chat interface)
 ```
 lensword/
 ├── data/
-│   ├── amazon_reviews.csv              # Original Amazon Alexa dataset (Kaggle)
-│   ├── amazon_reviews_cleaned.csv      # Combined Amazon + Yelp dataset (9,149 reviews)
-│   ├── word2idx.pkl                    # Vocabulary dictionary (4,340 words)
-│   └── *.pt                           # Preprocessed PyTorch tensors
+│   ├── amazon_reviews_cleaned.csv      # Notebook 01 output — READ ONLY
+│   ├── amazon_yelp_combined.csv        # Notebook 02 output
+│   ├── test_texts.csv                  # Test rows saved at split time (provenance)
+│   ├── word2idx.pkl                    # Vocabulary (fitted on training only)
+│   └── *.pt                           # PyTorch tensors
 ├── models/
-│   ├── lensword_model.pt              # Trained LSTM model weights
-│   ├── training_curves.png            # Loss and accuracy curves
-│   ├── confusion_matrix.png           # Confusion matrix
-│   └── results_comparison.csv        # Full results table
+│   ├── lensword_model.pt              # Trained LSTM weights
+│   ├── metrics.json                   # Official results (all figures from here)
+│   ├── comparison_results.json        # HuggingFace comparison results
+│   ├── confusion_matrix.png
+│   ├── training_curves.png
+│   └── final_model_comparison.png
 ├── notebooks/
-│   ├── 01_EDA_lensword.ipynb          # Exploratory Data Analysis
-│   ├── 02_preprocessing_lensword.ipynb # Text preprocessing + SMOTE
-│   ├── 03_model_training_lensword.ipynb # LSTM training
-│   ├── 04_evaluation_lensword.ipynb    # Model evaluation
-│   └── 05_huggingface_comparison_lensword.ipynb # HuggingFace comparison
+│   ├── 01_EDA_lensword.ipynb
+│   ├── 02_preprocessing_lensword.ipynb
+│   ├── 03_model_training_lensword.ipynb
+│   ├── 04_evaluation_lensword.ipynb
+│   └── 05_huggingface_comparison_lensword.ipynb
 ├── src/
-│   ├── api.py                         # FastAPI + RAG prediction endpoint
-│   ├── config.py                      # Project configuration
-│   └── knowledge_base.csv            # RAG customer service knowledge base (14 entries)
-├── reports/                           # Technical report and presentation slides
-├── screenshots/                       # Interface screenshots
-│   ├── dashboard.png                  # Business dashboard screenshot
-│   └── customer_chat.png             # Customer chat interface screenshot
-├── Dockerfile                         # Docker containerization
-├── index.html                         # Business analytics dashboard
-├── customer.html                      # Customer conversational chatbot
-└── requirements.txt                   # Python dependencies
+│   ├── api.py                         # FastAPI + RAG endpoint
+│   ├── config.py                      # Hyperparameters
+│   └── knowledge_base.csv            # 33-entry RAG knowledge base
+├── screenshots/
+├── reports/
+├── Dockerfile
+├── index.html                         # Business dashboard
+├── customer.html                      # Customer chat interface
+└── requirements.txt
 ```
 
 ---
@@ -122,13 +153,12 @@ lensword/
 | Layer | Tools |
 |---|---|
 | Deep Learning | PyTorch — Bidirectional LSTM |
-| Text Processing | Custom tokenizer, SMOTE (imbalanced-learn) |
+| Text Processing | Custom tokenizer, inverse-frequency class weights |
 | Data | Amazon Alexa Reviews (Kaggle) + Yelp Reviews (HuggingFace) |
 | RAG | ChromaDB + SentenceTransformers (all-MiniLM-L6-v2) |
 | API | FastAPI + Uvicorn |
-| Frontend | HTML + CSS + JavaScript (no frameworks) |
+| Frontend | HTML + CSS + JavaScript |
 | Containerization | Docker |
-| GPU Training | Google Colab T4 GPU |
 | Version Control | GitHub |
 
 ---
@@ -137,10 +167,10 @@ lensword/
 
 | Resource | Purpose |
 |---|---|
-| `Yelp/yelp_review_full` | Additional training data (6,000 reviews) |
-| `nlptown/bert-base-multilingual-uncased-sentiment` | Comparison baseline |
-| `LiYuan/amazon-review-sentiment-analysis` | Comparison baseline |
-| `cardiffnlp/twitter-roberta-base-sentiment-latest` | Comparison baseline |
+| `Yelp/yelp_review_full` | 8,000 additional training reviews |
+| `nlptown/bert-base-multilingual-uncased-sentiment` | Zero-shot comparison baseline |
+| `LiYuan/amazon-review-sentiment-analysis` | Zero-shot comparison baseline |
+| `cardiffnlp/twitter-roberta-base-sentiment-latest` | Zero-shot comparison baseline |
 | `sentence-transformers/all-MiniLM-L6-v2` | RAG embeddings (384-dim vectors) |
 
 ---
@@ -150,7 +180,6 @@ lensword/
 ### Prerequisites
 - Python 3.11+
 - Git
-- Docker Desktop (optional)
 
 ### 1. Clone the repository
 ```bash
@@ -161,25 +190,16 @@ cd lensword
 ### 2. Create and activate virtual environment
 ```bash
 python -m venv .venv
-
-# Windows
-.venv\Scripts\activate
-
-# Mac/Linux
-source .venv/bin/activate
+.venv\Scripts\activate        # Windows
+source .venv/bin/activate     # Mac/Linux
 ```
 
 ### 3. Install dependencies
 ```bash
 pip install -r requirements.txt
-pip install "fastapi[all]"
-pip install chromadb sentence-transformers
 ```
 
-### 4. Download the dataset
-Download `amazon_reviews.csv` from [Kaggle — Amazon Alexa Reviews](https://www.kaggle.com/datasets/sid321axn/amazon-alexa-reviews) and place it in the `data/` folder.
-
-### 5. Run the notebooks in order
+### 4. Run notebooks in order
 ```
 01_EDA_lensword.ipynb
 02_preprocessing_lensword.ipynb
@@ -188,52 +208,23 @@ Download `amazon_reviews.csv` from [Kaggle — Amazon Alexa Reviews](https://www
 05_huggingface_comparison_lensword.ipynb
 ```
 
----
-
-## Running the Application
-
-### Option A — Run with FastAPI directly
+### 5. Start the API
 ```bash
 cd src
 uvicorn api:app --reload
 ```
 
-### Option B — Run with Docker
-```bash
-docker build -t lensword .
-docker run -p 8000:8000 lensword
-```
-
-### Access the application
+### 6. Open the interfaces
 - **Business Dashboard:** Open `index.html` in your browser
 - **Customer Chat:** Open `customer.html` in your browser
-- **API Health Check:** http://127.0.0.1:8000
 - **API Docs:** http://127.0.0.1:8000/docs
 
 ---
 
-## Example API Request & Response
-
-```json
-POST http://127.0.0.1:8000/predict
-{
-  "text": "This product broke after two days, terrible quality"
-}
-```
-
-```json
-{
-  "sentiment": "Negative",
-  "confidence": 87.32,
-  "probabilities": {
-    "Negative": 87.32,
-    "Neutral": 5.41,
-    "Positive": 7.27
-  },
-  "action": "escalate",
-  "priority": "HIGH",
-  "suggested_response": "We sincerely apologize for the quality issue. We would like to offer you a full replacement or refund."
-}
+## Docker
+```bash
+docker build -t lensword .
+docker run -p 8000:8000 lensword
 ```
 
 ---
@@ -244,22 +235,24 @@ POST http://127.0.0.1:8000/predict
 |---|---|
 | Architecture | Bidirectional LSTM |
 | Layers | 2 |
-| Hidden Dimensions | 128 |
+| Hidden Dimensions | 64 |
 | Embedding Dimensions | 64 |
-| Vocabulary Size | 4,340 |
+| Vocabulary Size | 4,340 (fitted on training only) |
 | Max Sequence Length | 50 tokens |
-| Total Parameters | 872,451 |
-| Best Validation Accuracy | 89.61% |
-| Macro F1 Score | 88.40% |
+| Total Parameters | 444,035 |
+| Optimizer | AdamW (weight_decay=1e-4) |
+| Dropout | 0.4 |
+| Test Accuracy | 72.62% |
+| Test Macro F1 | 0.7263 |
 
 ---
 
 ## Known Limitations
 
-- Mild overfitting (10% gap between training and validation accuracy) due to limited dataset size
-- Negation handling weakness — addressed via confidence threshold in customer.html
+- Overfitting present — ~10% gap between training and validation accuracy due to limited dataset size
+- Neutral class is hardest to classify (F1: 0.6396) — 3-star reviews are genuinely ambiguous
 - English language only
-- RAG knowledge base contains 14 entries
+- RAG knowledge base contains 33 entries
 
 ---
 
