@@ -1,21 +1,31 @@
-torch>=2.2
-torchvision
-transformers>=4.41
-peft>=0.11
-sentencepiece
-Pillow
-requests
-numpy
-pandas
-matplotlib
-scikit-learn
-gradio>=4.0
-ipykernel
-jupyter
-uvicorn
-fastapi
-streamlit
-imbalanced-learn
-datasets
-chromaDB
-sentence-transformers
+# LensWord — pinned requirements
+# API and serving
+fastapi==0.111.0
+uvicorn==0.30.1
+pydantic==2.7.1
+
+# Deep learning — CPU torch wheel (smaller image for deployment)
+torch==2.3.0+cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# NLP and ML
+transformers==4.41.2
+sentence-transformers==2.7.0
+datasets==2.19.1
+scikit-learn==1.5.0
+imbalanced-learn==0.12.3
+
+# Vector database
+chromadb==0.5.0
+
+# Data processing
+numpy==1.26.4
+pandas==2.2.2
+
+# Visualization (notebooks only)
+matplotlib==3.9.0
+seaborn==0.13.2
+
+# Notebook support
+ipykernel==6.29.4
+jupyter==1.0.0
