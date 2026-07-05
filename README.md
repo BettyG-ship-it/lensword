@@ -1,5 +1,3 @@
-# lensword
-Deep learning Sentiment analysis for e-commerce product review
 # LensWord 🔍
 
 ### Deep Learning Sentiment Analysis for E-Commerce Product Reviews
@@ -11,9 +9,9 @@ Deep learning Sentiment analysis for e-commerce product review
 
 ## What is LensWord?
 
-LensWord is an end-to-end deep learning system that automatically classifies Amazon product reviews as **Positive**, **Neutral**, or **Negative** — and uses a RAG (Retrieval-Augmented Generation) system to suggest the most relevant customer service response based on the complaint.
+LensWord is an end-to-end deep learning system that automatically classifies Amazon product reviews as **Positive**, **Neutral**, or **Negative** — and uses a RAG (Retrieval-Augmented Generation) system to suggest the most relevant customer service response.
 
-Instead of a business reading thousands of reviews manually, LensWord does it instantly and consistently, helping teams prioritize customer issues and respond faster.
+A star rating tells you HOW unhappy a customer is — LensWord tells you **WHY**, **how urgent it is**, and **exactly what to say back**.
 
 ---
 
@@ -30,24 +28,55 @@ Instead of a business reading thousands of reviews manually, LensWord does it in
 
 ---
 
+## Dual Interface System
+
+LensWord provides two separate interfaces serving two different audiences:
+
+### 1. Business Dashboard — `index.html`
+For internal business and customer service teams.
+
+![Business Dashboard](screenshots/dashboard.png)
+
+**Features:**
+- Real-time sentiment classification with color-coded badge
+- Confidence score and probability breakdown for all three classes
+- Priority level (LOW / MEDIUM / HIGH)
+- RAG-powered suggested customer service response
+
+### 2. Customer Chat Interface — `customer.html`
+For direct customer interaction after submitting a review.
+
+![Customer Chat](screenshots/customer_chat.png)
+
+**Features:**
+- Customer submits their review naturally
+- System detects sentiment silently — customer never sees technical outputs
+- 5-step empathetic conversation flow based on detected sentiment:
+  - **Negative** → empathetic resolution with replacement/refund options
+  - **Neutral** → feedback collection with follow-up questions
+  - **Positive** → warm appreciation with loyalty program offer
+- Confidence threshold: if model confidence below 75%, asks customer directly
+
+---
+
 ## Architecture
 
 ```
-User Review (index.html)
+User Review
         ↓
 FastAPI /predict endpoint (api.py)
         ↓
-Text Preprocessing (clean → tokenize → pad)
+Text Preprocessing (clean → tokenize → pad to 50 tokens)
         ↓
 Bidirectional LSTM (2 layers, 872,451 parameters)
         ↓
 Sentiment Prediction (Negative / Neutral / Positive)
         ↓
-RAG System (ChromaDB + SentenceTransformers)
+RAG System (ChromaDB + SentenceTransformers all-MiniLM-L6-v2)
         ↓
 Suggested Customer Service Response
         ↓
-JSON Response → index.html displays results
+index.html (business dashboard) or customer.html (chat interface)
 ```
 
 ---
@@ -57,15 +86,14 @@ JSON Response → index.html displays results
 ```
 lensword/
 ├── data/
-│   ├── amazon_reviews.csv              # Original Amazon Alexa dataset
+│   ├── amazon_reviews.csv              # Original Amazon Alexa dataset (Kaggle)
 │   ├── amazon_reviews_cleaned.csv      # Combined Amazon + Yelp dataset (9,149 reviews)
-│   ├── word2idx.pkl                    # Vocabulary dictionary
+│   ├── word2idx.pkl                    # Vocabulary dictionary (4,340 words)
 │   └── *.pt                           # Preprocessed PyTorch tensors
 ├── models/
 │   ├── lensword_model.pt              # Trained LSTM model weights
 │   ├── training_curves.png            # Loss and accuracy curves
 │   ├── confusion_matrix.png           # Confusion matrix
-│   ├── final_model_comparison.png     # Model comparison chart
 │   └── results_comparison.csv        # Full results table
 ├── notebooks/
 │   ├── 01_EDA_lensword.ipynb          # Exploratory Data Analysis
@@ -76,11 +104,14 @@ lensword/
 ├── src/
 │   ├── api.py                         # FastAPI + RAG prediction endpoint
 │   ├── config.py                      # Project configuration
-│   └── knowledge_base.csv            # RAG customer service knowledge base
+│   └── knowledge_base.csv            # RAG customer service knowledge base (14 entries)
 ├── reports/                           # Technical report and presentation slides
+├── screenshots/                       # Interface screenshots
+│   ├── dashboard.png                  # Business dashboard screenshot
+│   └── customer_chat.png             # Customer chat interface screenshot
 ├── Dockerfile                         # Docker containerization
-├── .dockerignore
-├── index.html                         # JavaScript web app frontend
+├── index.html                         # Business analytics dashboard
+├── customer.html                      # Customer conversational chatbot
 └── requirements.txt                   # Python dependencies
 ```
 
@@ -92,12 +123,25 @@ lensword/
 |---|---|
 | Deep Learning | PyTorch — Bidirectional LSTM |
 | Text Processing | Custom tokenizer, SMOTE (imbalanced-learn) |
-| Data | Amazon Alexa Reviews + Yelp Reviews (HuggingFace) |
+| Data | Amazon Alexa Reviews (Kaggle) + Yelp Reviews (HuggingFace) |
 | RAG | ChromaDB + SentenceTransformers (all-MiniLM-L6-v2) |
 | API | FastAPI + Uvicorn |
-| Frontend | HTML + CSS + JavaScript |
+| Frontend | HTML + CSS + JavaScript (no frameworks) |
 | Containerization | Docker |
+| GPU Training | Google Colab T4 GPU |
 | Version Control | GitHub |
+
+---
+
+## HuggingFace Resources Used
+
+| Resource | Purpose |
+|---|---|
+| `Yelp/yelp_review_full` | Additional training data (6,000 reviews) |
+| `nlptown/bert-base-multilingual-uncased-sentiment` | Comparison baseline |
+| `LiYuan/amazon-review-sentiment-analysis` | Comparison baseline |
+| `cardiffnlp/twitter-roberta-base-sentiment-latest` | Comparison baseline |
+| `sentence-transformers/all-MiniLM-L6-v2` | RAG embeddings (384-dim vectors) |
 
 ---
 
@@ -161,25 +205,15 @@ docker run -p 8000:8000 lensword
 ```
 
 ### Access the application
-- **Web App:** Open `index.html` in your browser
+- **Business Dashboard:** Open `index.html` in your browser
+- **Customer Chat:** Open `customer.html` in your browser
 - **API Health Check:** http://127.0.0.1:8000
 - **API Docs:** http://127.0.0.1:8000/docs
 
 ---
 
-## Usage
+## Example API Request & Response
 
-1. Open `index.html` in your browser
-2. Type or paste a product review
-3. Click **Analyze Sentiment**
-4. LensWord returns:
-   - Sentiment classification (Positive / Neutral / Negative)
-   - Confidence score
-   - Probability breakdown for all three classes
-   - RAG-powered suggested customer service response
-   - Priority level (LOW / MEDIUM / HIGH)
-
-### Example API Request
 ```json
 POST http://127.0.0.1:8000/predict
 {
@@ -187,10 +221,8 @@ POST http://127.0.0.1:8000/predict
 }
 ```
 
-### Example API Response
 ```json
 {
-  "text": "This product broke after two days, terrible quality",
   "sentiment": "Negative",
   "confidence": 87.32,
   "probabilities": {
@@ -200,7 +232,7 @@ POST http://127.0.0.1:8000/predict
   },
   "action": "escalate",
   "priority": "HIGH",
-  "suggested_response": "We sincerely apologize for the quality issue you experienced. We would like to offer you a full replacement or refund. Please contact our support team with your order number and we will resolve this immediately."
+  "suggested_response": "We sincerely apologize for the quality issue. We would like to offer you a full replacement or refund."
 }
 ```
 
@@ -208,34 +240,32 @@ POST http://127.0.0.1:8000/predict
 
 ## Model Details
 
-### Architecture
-- **Embedding Layer:** 4,340 vocabulary → 64 dimensions
-- **Bidirectional LSTM:** 2 layers, 128 hidden units, reads forward and backward
-- **Dropout:** 0.3 regularization
-- **Fully Connected:** 256 → 3 classes
-- **Total Parameters:** 872,451
+| Parameter | Value |
+|---|---|
+| Architecture | Bidirectional LSTM |
+| Layers | 2 |
+| Hidden Dimensions | 128 |
+| Embedding Dimensions | 64 |
+| Vocabulary Size | 4,340 |
+| Max Sequence Length | 50 tokens |
+| Total Parameters | 872,451 |
+| Best Validation Accuracy | 89.61% |
+| Macro F1 Score | 88.40% |
 
-### Training
-- **Dataset:** 9,149 reviews (Amazon Alexa + Yelp)
-- **SMOTE:** Applied to balance classes to 3,555 each → 10,665 training samples
-- **Optimizer:** Adam (lr=0.001)
-- **Scheduler:** ReduceLROnPlateau (patience=2, factor=0.5)
-- **Early Stopping:** Patience=5
-- **Best Validation Accuracy:** 89.61%
+---
 
-### Key Experiments
-| Experiment | Macro F1 | Finding |
-|---|---|---|
-| Baseline LSTM | 67.99% | Heavy class imbalance |
-| + SMOTE | 72.42% | Improved minority classes |
-| + LR Scheduler | 76.49% | Best single run |
-| + Expanded Dataset | **88.40%** | Addressed advisor feedback |
+## Known Limitations
+
+- Mild overfitting (10% gap between training and validation accuracy) due to limited dataset size
+- Negation handling weakness — addressed via confidence threshold in customer.html
+- English language only
+- RAG knowledge base contains 14 entries
 
 ---
 
 ## Academic Integrity
 
-This project was completed as part of the AI/ML Engineering Program at Apeiron AI Training. Claude AI was used as a learning assistant for guidance, debugging, and concept explanation. All code was written, understood, and executed by the team. Any significant AI assistance has been disclosed in accordance with program guidelines.
+This project was completed as part of the AI/ML Engineering Program at Apeiron AI Training. Claude AI was used as a learning assistant for guidance, debugging, and concept explanation. All code was written, understood, and executed by the team.
 
 ---
 
