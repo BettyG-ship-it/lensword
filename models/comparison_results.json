@@ -1,0 +1,42 @@
+{
+  "test_set": "test_texts.csv",
+  "n_test": 1030,
+  "caveat": "HuggingFace models evaluated zero-shot. LSTM trained on this distribution.",
+  "models": {
+    "LensWord_LSTM": {
+      "trained": true,
+      "accuracy": 72.62,
+      "macro_f1": 0.7263,
+      "neg_f1": 0.7467,
+      "neu_f1": 0.6396,
+      "pos_f1": 0.7925
+    },
+    "NLPTown": {
+      "trained": false,
+      "zero_shot": true,
+      "accuracy": 72.52,
+      "macro_f1": 0.7115,
+      "neg_f1": 0.8309,
+      "neu_f1": 0.5483,
+      "pos_f1": 0.7553
+    },
+    "LiYuan": {
+      "trained": false,
+      "zero_shot": true,
+      "accuracy": 64.47,
+      "macro_f1": 0.6241,
+      "neg_f1": 0.791,
+      "neu_f1": 0.4023,
+      "pos_f1": 0.679
+    },
+    "CardiffNLP": {
+      "trained": false,
+      "zero_shot": true,
+      "accuracy": 60.68,
+      "macro_f1": 0.5399,
+      "neg_f1": 0.801,
+      "neu_f1": 0.1591,
+      "pos_f1": 0.6594
+    }
+  }
+}
