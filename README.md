@@ -19,7 +19,7 @@ A star rating tells you HOW unhappy a customer is — LensWord tells you **WHY**
 
 | Model | Accuracy | Macro F1 |
 |---|---|---|
-| **LensWord LSTM (trained, in-domain)** | **72.62%** | **0.7263** |
+| **LensWord LSTM (mean 00b1 std, 3 seeds)** | **71.88% 00b1 0.59%** | **0.7201 00b1 0.0052** |
 | NLPTown (zero-shot) | 72.52% | 0.7115 |
 | LiYuan Amazon (zero-shot) | 64.47% | 0.6241 |
 | CardiffNLP Twitter (zero-shot) | 60.68% | 0.5399 |
