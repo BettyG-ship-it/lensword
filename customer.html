@@ -37,48 +37,25 @@
             gap: 15px;
         }
 
-        .agent-avatar {
-            width: 48px; height: 48px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px; flex-shrink: 0;
-        }
-
+        .agent-avatar { width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
         .agent-info h2 { color: white; font-size: 1.1rem; font-weight: 600; }
         .agent-info p { color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-top: 2px; }
         .status-dot { width: 8px; height: 8px; background: #10B981; border-radius: 50%; display: inline-block; margin-right: 5px; }
 
-        .chat-area {
-            background: white; flex: 1; overflow-y: auto;
-            padding: 20px; display: flex; flex-direction: column;
-            gap: 16px; scroll-behavior: smooth;
-        }
+        .chat-area { background: white; flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
 
         .message { display: flex; gap: 10px; max-width: 85%; animation: fadeIn 0.3s ease; }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
         .message.agent { align-self: flex-start; }
         .message.customer { align-self: flex-end; flex-direction: row-reverse; }
 
-        .message-avatar {
-            width: 36px; height: 36px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 18px; flex-shrink: 0; margin-top: 4px;
-        }
-
+        .message-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; margin-top: 4px; }
         .message.agent .message-avatar { background: #E8F4F8; }
         .message.customer .message-avatar { background: #065A82; }
 
-        .message-bubble {
-            padding: 12px 16px; border-radius: 18px;
-            font-size: 0.9rem; line-height: 1.5; max-width: 100%;
-        }
-
+        .message-bubble { padding: 12px 16px; border-radius: 18px; font-size: 0.9rem; line-height: 1.5; max-width: 100%; }
         .message.agent .message-bubble { background: #F1F5F9; color: #1E293B; border-bottom-left-radius: 4px; }
         .message.customer .message-bubble { background: linear-gradient(135deg, #065A82, #1C7293); color: white; border-bottom-right-radius: 4px; }
 
@@ -91,19 +68,11 @@
         .typing-dot:nth-child(2) { animation-delay: 0.2s; }
         .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
-        @keyframes bounce {
-            0%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-6px); }
-        }
+        @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
 
         .quick-replies { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 0 4px 46px; animation: fadeIn 0.3s ease; }
 
-        .quick-reply-btn {
-            background: white; border: 1.5px solid #1C7293; color: #1C7293;
-            padding: 6px 14px; border-radius: 20px; font-size: 0.82rem;
-            cursor: pointer; transition: all 0.2s; font-family: inherit;
-        }
-
+        .quick-reply-btn { background: white; border: 1.5px solid #1C7293; color: #1C7293; padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; font-family: inherit; }
         .quick-reply-btn:hover { background: #1C7293; color: white; }
 
         .input-area { background: white; border-top: 1px solid #E2E8F0; padding: 16px 20px; border-radius: 0 0 20px 20px; }
@@ -111,48 +80,22 @@
         .review-input-section { display: flex; flex-direction: column; gap: 10px; }
         .review-label { font-size: 0.85rem; color: #64748B; font-weight: 500; }
 
-        textarea {
-            width: 100%; border: 1.5px solid #E2E8F0; border-radius: 12px;
-            padding: 12px; font-size: 0.9rem; font-family: inherit;
-            resize: none; min-height: 80px; color: #1E293B; outline: none;
-            transition: border-color 0.2s;
-        }
-
+        textarea { width: 100%; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 12px; font-size: 0.9rem; font-family: inherit; resize: none; min-height: 80px; color: #1E293B; outline: none; transition: border-color 0.2s; }
         textarea:focus { border-color: #1C7293; }
         textarea::placeholder { color: #CBD5E1; }
 
         .chat-input-row { display: flex; gap: 10px; align-items: flex-end; }
 
-        .chat-input {
-            flex: 1; border: 1.5px solid #E2E8F0; border-radius: 24px;
-            padding: 10px 16px; font-size: 0.9rem; font-family: inherit;
-            outline: none; transition: border-color 0.2s; color: #1E293B;
-            resize: none; min-height: 44px; max-height: 120px;
-        }
-
+        .chat-input { flex: 1; border: 1.5px solid #E2E8F0; border-radius: 24px; padding: 10px 16px; font-size: 0.9rem; font-family: inherit; outline: none; transition: border-color 0.2s; color: #1E293B; resize: none; min-height: 44px; max-height: 120px; }
         .chat-input:focus { border-color: #1C7293; }
         .chat-input::placeholder { color: #CBD5E1; }
 
-        .send-btn {
-            width: 44px; height: 44px;
-            background: linear-gradient(135deg, #065A82, #1C7293);
-            border: none; border-radius: 50%; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; transition: transform 0.2s, opacity 0.2s;
-        }
-
+        .send-btn { width: 44px; height: 44px; background: linear-gradient(135deg, #065A82, #1C7293); border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform 0.2s, opacity 0.2s; }
         .send-btn:hover { transform: scale(1.05); opacity: 0.9; }
         .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
         .send-btn svg { width: 18px; height: 18px; fill: white; }
 
-        .submit-btn {
-            width: 100%; padding: 13px;
-            background: linear-gradient(135deg, #065A82, #1C7293);
-            border: none; border-radius: 12px; color: white;
-            font-size: 0.95rem; font-weight: 600; cursor: pointer;
-            transition: opacity 0.2s, transform 0.2s; font-family: inherit;
-        }
-
+        .submit-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, #065A82, #1C7293); border: none; border-radius: 12px; color: white; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.2s; font-family: inherit; }
         .submit-btn:hover { opacity: 0.9; transform: translateY(-1px); }
         .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
@@ -202,6 +145,28 @@
     let conversationStep = 0;
     let conversationState = 'initial';
     let lowConfidenceMode = false;
+
+    // Negation and strong negative words to catch before API call
+    const negationWords = [
+        'didnt', "didn't", 'dont', "don't", 'not', 'no',
+        "wouldn't", 'wouldnt', "can't", 'cant',
+        "doesn't", 'doesnt', "won't", 'wont',
+        "isn't", 'isnt', "wasn't", 'wasnt',
+        "haven't", 'havent', "couldn't", 'couldnt',
+        'hate', 'hated', 'horrible', 'terrible', 'awful',
+        'worst', 'useless', 'waste', 'disappointed',
+        'disappointing', 'dissatisfied', 'unhappy',
+        'poor', 'bad', 'broken', 'defective', 'damaged',
+        'never', 'neither', 'hardly', 'barely', 'scam'
+    ];
+
+    function hasNegationOrNegative(text) {
+        const lower = text.toLowerCase();
+        return negationWords.some(word => {
+            const regex = new RegExp('\\b' + word.replace(/'/g, "'?") + '\\b', 'i');
+            return regex.test(lower);
+        });
+    }
 
     // Full 5-step conversation flows
     const flows = {
@@ -276,14 +241,6 @@
         ]
     };
 
-    // Low confidence flow — asks customer directly
-    const lowConfidenceFlow = [
-        {
-            bot: "Thank you for sharing your feedback! To make sure we help you in the best way possible, could you tell us — are you happy with your experience, or did something go wrong?",
-            quickReplies: ["Something went wrong 😞", "It was just okay 😐", "I am happy with it 😊"]
-        }
-    ];
-
     function getTime() {
         return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
@@ -345,8 +302,6 @@
             btn.onclick = () => {
                 removeQuickReplies();
                 addMessage(opt, 'customer');
-
-                // Handle low confidence quick reply
                 if (lowConfidenceMode) {
                     lowConfidenceMode = false;
                     if (opt.includes('went wrong')) {
@@ -366,6 +321,13 @@
         });
         chatArea.appendChild(qrDiv);
         chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function showLowConfidenceQuestion() {
+        lowConfidenceMode = true;
+        conversationState = 'chatting';
+        addMessage("Thank you for your feedback! To make sure we help you in the best way possible, could you tell us — are you happy with your experience, or did something go wrong?", 'agent');
+        setTimeout(() => showQuickReplies(["Something went wrong 😞", "It was just okay 😐", "I am happy with it 😊"]), 400);
     }
 
     function nextBotMessage() {
@@ -408,6 +370,14 @@
 
         showTyping();
 
+        // PRE-CHECK: detect negation or strong negative words before calling API
+        if (hasNegationOrNegative(reviewText)) {
+            await new Promise(r => setTimeout(r, 1500));
+            removeTyping();
+            showLowConfidenceQuestion();
+            return;
+        }
+
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
@@ -423,14 +393,8 @@
 
             // CONFIDENCE THRESHOLD CHECK
             if (confidence < CONFIDENCE_THRESHOLD) {
-                // Low confidence — ask customer directly
-                lowConfidenceMode = true;
-                conversationState = 'chatting';
-                const step = lowConfidenceFlow[0];
-                addMessage(step.bot, 'agent');
-                setTimeout(() => showQuickReplies(step.quickReplies), 400);
+                showLowConfidenceQuestion();
             } else {
-                // High confidence — use model prediction
                 detectedSentiment = data.sentiment;
                 conversationStep = 0;
                 conversationState = 'chatting';
