@@ -22,5 +22,33 @@
     1.1493226289749146
   ],
   "smote_applied": false,
-  "vocab_fitted_on": "training_partition_only"
+  "vocab_fitted_on": "training_partition_only",
+  "multi_seed": {
+    "seeds": [
+      42,
+      7,
+      123
+    ],
+    "per_seed": [
+      {
+        "seed": 42,
+        "test_accuracy": 72.62135922330097,
+        "test_macro_f1": 0.7262647722646728
+      },
+      {
+        "seed": 7,
+        "test_accuracy": 71.84466019417476,
+        "test_macro_f1": 0.7205382616419076
+      },
+      {
+        "seed": 123,
+        "test_accuracy": 71.16504854368932,
+        "test_macro_f1": 0.7136147355198617
+      }
+    ],
+    "mean_accuracy": 71.88,
+    "std_accuracy": 0.59,
+    "mean_macro_f1": 0.7201,
+    "std_macro_f1": 0.0052
+  }
 }
