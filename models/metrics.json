@@ -1,0 +1,26 @@
+{
+  "dataset": "amazon_yelp_combined.csv",
+  "seed": 42,
+  "n_train": 7720,
+  "n_val": 1544,
+  "n_test": 1030,
+  "epochs_run": 10,
+  "best_val_macro_f1": 0.7239,
+  "test_accuracy": 72.62,
+  "test_macro_f1": 0.7263,
+  "per_class_f1": {
+    "Negative": 0.7467,
+    "Neutral": 0.6396,
+    "Positive": 0.7925
+  },
+  "checkpoint_metric": "validation_macro_f1",
+  "optimizer": "AdamW",
+  "weight_decay": 0.0001,
+  "class_weights": [
+    0.9263259172439575,
+    0.9520286321640015,
+    1.1493226289749146
+  ],
+  "smote_applied": false,
+  "vocab_fitted_on": "training_partition_only"
+}
