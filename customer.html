@@ -122,7 +122,7 @@
     <div class="input-area">
         <div class="review-input-section" id="reviewInputSection">
             <div class="review-label">Share your experience with us:</div>
-            <textarea id="reviewInput" placeholder="Tell us about your experience with our product..."></textarea>
+            <textarea id="reviewInput" placeholder="Tell us about your experience with our product..." maxlength="2000"></textarea>
             <button class="submit-btn" id="submitReviewBtn" onclick="submitReview()">Send Feedback</button>
         </div>
 
@@ -138,7 +138,10 @@
 </div>
 
 <script>
-    const API_URL = 'http://127.0.0.1:8000/predict';
+    // API base URL — configurable
+    const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
+
+    // Confidence threshold — if model confidence below this ask customer directly
     const CONFIDENCE_THRESHOLD = 75.0;
 
     let detectedSentiment = '';
@@ -146,29 +149,7 @@
     let conversationState = 'initial';
     let lowConfidenceMode = false;
 
-    // Negation and strong negative words to catch before API call
-    const negationWords = [
-        'didnt', "didn't", 'dont', "don't", 'not', 'no',
-        "wouldn't", 'wouldnt', "can't", 'cant',
-        "doesn't", 'doesnt', "won't", 'wont',
-        "isn't", 'isnt', "wasn't", 'wasnt',
-        "haven't", 'havent', "couldn't", 'couldnt',
-        'hate', 'hated', 'horrible', 'terrible', 'awful',
-        'worst', 'useless', 'waste', 'disappointed',
-        'disappointing', 'dissatisfied', 'unhappy',
-        'poor', 'bad', 'broken', 'defective', 'damaged',
-        'never', 'neither', 'hardly', 'barely', 'scam'
-    ];
-
-    function hasNegationOrNegative(text) {
-        const lower = text.toLowerCase();
-        return negationWords.some(word => {
-            const regex = new RegExp('\\b' + word.replace(/'/g, "'?") + '\\b', 'i');
-            return regex.test(lower);
-        });
-    }
-
-    // Full 5-step conversation flows
+    // Full 5-step conversation flows per sentiment
     const flows = {
         Negative: [
             {
@@ -312,10 +293,8 @@
                         detectedSentiment = 'Positive';
                     }
                     conversationStep = 0;
-                    setTimeout(() => nextBotMessage(), 1200);
-                } else {
-                    setTimeout(() => nextBotMessage(), 1200);
                 }
+                setTimeout(() => nextBotMessage(), 1200);
             };
             qrDiv.appendChild(btn);
         });
@@ -332,7 +311,7 @@
 
     function nextBotMessage() {
         const flow = flows[detectedSentiment];
-        if (conversationStep >= flow.length) return;
+        if (!flow || conversationStep >= flow.length) return;
 
         showTyping();
         const step = flow[conversationStep];
@@ -370,31 +349,23 @@
 
         showTyping();
 
-        // PRE-CHECK: detect negation or strong negative words before calling API
-        if (hasNegationOrNegative(reviewText)) {
-            await new Promise(r => setTimeout(r, 1500));
-            removeTyping();
-            showLowConfidenceQuestion();
-            return;
-        }
-
         try {
-            const response = await fetch(API_URL, {
+            const response = await fetch(`${API_BASE}/predict`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: reviewText })
             });
 
             const data = await response.json();
-            const confidence = data.confidence;
 
             await new Promise(r => setTimeout(r, 1500));
             removeTyping();
 
-            // CONFIDENCE THRESHOLD CHECK
-            if (confidence < CONFIDENCE_THRESHOLD) {
+            // Confidence threshold — if below 75% ask customer directly
+            if (data.confidence < CONFIDENCE_THRESHOLD) {
                 showLowConfidenceQuestion();
             } else {
+                // High confidence — use model prediction directly
                 detectedSentiment = data.sentiment;
                 conversationStep = 0;
                 conversationState = 'chatting';
