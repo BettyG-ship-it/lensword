@@ -38,15 +38,11 @@
         }
 
         .agent-avatar {
-            width: 48px;
-            height: 48px;
+            width: 48px; height: 48px;
             background: rgba(255,255,255,0.2);
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; flex-shrink: 0;
         }
 
         .agent-info h2 { color: white; font-size: 1.1rem; font-weight: 600; }
@@ -54,14 +50,9 @@
         .status-dot { width: 8px; height: 8px; background: #10B981; border-radius: 50%; display: inline-block; margin-right: 5px; }
 
         .chat-area {
-            background: white;
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            scroll-behavior: smooth;
+            background: white; flex: 1; overflow-y: auto;
+            padding: 20px; display: flex; flex-direction: column;
+            gap: 16px; scroll-behavior: smooth;
         }
 
         .message { display: flex; gap: 10px; max-width: 85%; animation: fadeIn 0.3s ease; }
@@ -205,12 +196,14 @@
 
 <script>
     const API_URL = 'http://127.0.0.1:8000/predict';
+    const CONFIDENCE_THRESHOLD = 75.0;
 
     let detectedSentiment = '';
     let conversationStep = 0;
     let conversationState = 'initial';
+    let lowConfidenceMode = false;
 
-    // Full conversation flows per sentiment
+    // Full 5-step conversation flows
     const flows = {
         Negative: [
             {
@@ -218,62 +211,62 @@
                 quickReplies: ["Product quality issue", "Shipping problem", "Wrong item received", "Other issue"]
             },
             {
-                bot: "Thank you for letting us know. We completely understand your frustration and we sincerely apologize for this. Could you please share your order number or the email address used for the purchase so we can look into this right away?",
+                bot: "Thank you for letting us know. We completely understand your frustration and we sincerely apologize. Could you please share your order number or the email address used for the purchase so we can look into this immediately?",
                 quickReplies: []
             },
             {
-                bot: "Thank you! We've located your account and flagged this as a high priority case. Our team will review the issue immediately. In the meantime, would you like us to arrange a replacement, a full refund, or store credit?",
+                bot: "Thank you! We have located your account and flagged this as a high priority case. Would you like us to arrange a replacement, a full refund, or store credit?",
                 quickReplies: ["Replacement please", "Full refund", "Store credit", "Not sure yet"]
             },
             {
-                bot: "Understood — we've noted your preference. A dedicated customer service representative will contact you within 24 hours to confirm the next steps and complete the resolution. Is there anything else you'd like us to know about your experience?",
+                bot: "Understood — we have noted your preference. A dedicated customer service representative will contact you within 24 hours to confirm the next steps. Is there anything else you would like us to know?",
                 quickReplies: []
             },
             {
-                bot: "Thank you so much for your patience and for giving us the opportunity to make this right. We truly value you as a customer and we are committed to resolving this to your full satisfaction. You will hear from us very soon. 🙏",
+                bot: "Thank you so much for your patience and for giving us the opportunity to make this right. We truly value you as a customer and are committed to resolving this to your full satisfaction. You will hear from us very soon. 🙏",
                 quickReplies: [],
                 final: true
             }
         ],
         Neutral: [
             {
-                bot: "Thank you for sharing your feedback with us 😊 We appreciate you taking the time. We're always working to improve — what do you think we could do better to give you a great experience?",
+                bot: "Thank you for sharing your feedback with us 😊 We are always working to improve. What do you think we could do better to give you a great experience?",
                 quickReplies: ["Product quality", "Delivery speed", "Customer service", "Pricing", "Something else"]
             },
             {
-                bot: "That's really valuable feedback, thank you! Could you tell us a bit more about what specifically could be improved? Any details you share help our team make better decisions.",
+                bot: "That is really valuable feedback, thank you! Could you tell us a bit more about what specifically could be improved?",
                 quickReplies: []
             },
             {
-                bot: "We really appreciate your honest input. Is there anything that would make you more likely to recommend our product to a friend or colleague?",
+                bot: "We really appreciate your honest input. Is there anything that would make you more likely to recommend our product to a friend?",
                 quickReplies: ["Better quality", "Lower price", "Faster delivery", "Better support"]
             },
             {
-                bot: "Thank you — this kind of feedback is exactly what helps us grow. We'll make sure your suggestions reach our product and operations teams directly. Would you like to receive updates on improvements we make based on customer feedback like yours?",
+                bot: "Thank you — this kind of feedback is exactly what helps us grow. We will make sure your suggestions reach our product team directly. Would you like to receive updates on improvements we make?",
                 quickReplies: ["Yes please", "No thanks"]
             },
             {
-                bot: "Perfect! Thank you so much for your time and honest feedback. We hope to exceed your expectations on your next experience with us. Have a wonderful day! 😊",
+                bot: "Thank you so much for your time and honest feedback. We hope to exceed your expectations next time. Have a wonderful day! 😊",
                 quickReplies: [],
                 final: true
             }
         ],
         Positive: [
             {
-                bot: "Thank you so much for the wonderful feedback! 😊🎉 We're absolutely thrilled to hear you had a great experience! What did you enjoy most about your purchase?",
+                bot: "Thank you so much for the wonderful feedback! 😊🎉 We are absolutely thrilled to hear you had a great experience! What did you enjoy most about your purchase?",
                 quickReplies: ["Product quality", "Fast delivery", "Great value", "Easy to use", "Customer service"]
             },
             {
-                bot: "That's so wonderful to hear! We put a lot of care into every product and it truly means the world to us when customers notice. Would you like to share your experience as a review? It helps other customers make informed decisions!",
-                quickReplies: ["Yes I'd love to", "Maybe later", "No thanks"]
+                bot: "That is so wonderful to hear! We put a lot of care into every product. Would you like to share your experience as a review? It helps other customers make informed decisions!",
+                quickReplies: ["Yes I would love to", "Maybe later", "No thanks"]
             },
             {
-                bot: "Amazing — thank you! As a valued customer, we'd love to offer you early access to our newest products and exclusive member discounts. Would you like to join our loyalty program?",
+                bot: "Amazing — thank you! As a valued customer, we would love to offer you early access to our newest products and exclusive member discounts. Would you like to join our loyalty program?",
                 quickReplies: ["Yes sign me up!", "Tell me more", "Not right now"]
             },
             {
-                bot: "Fantastic! We've noted your interest. You'll receive a welcome email with all the details shortly. Is there anything else we can help you with today?",
-                quickReplies: ["No I'm good", "Yes one more thing"]
+                bot: "Fantastic! We have noted your interest. You will receive a welcome email with all the details shortly. Is there anything else we can help you with today?",
+                quickReplies: ["No I am good", "Yes one more thing"]
             },
             {
                 bot: "Thank you so much for being such a wonderful customer! 🌟 We look forward to serving you again very soon. Have an amazing day!",
@@ -282,6 +275,14 @@
             }
         ]
     };
+
+    // Low confidence flow — asks customer directly
+    const lowConfidenceFlow = [
+        {
+            bot: "Thank you for sharing your feedback! To make sure we help you in the best way possible, could you tell us — are you happy with your experience, or did something go wrong?",
+            quickReplies: ["Something went wrong 😞", "It was just okay 😐", "I am happy with it 😊"]
+        }
+    ];
 
     function getTime() {
         return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -344,7 +345,22 @@
             btn.onclick = () => {
                 removeQuickReplies();
                 addMessage(opt, 'customer');
-                setTimeout(() => nextBotMessage(), 1200);
+
+                // Handle low confidence quick reply
+                if (lowConfidenceMode) {
+                    lowConfidenceMode = false;
+                    if (opt.includes('went wrong')) {
+                        detectedSentiment = 'Negative';
+                    } else if (opt.includes('okay')) {
+                        detectedSentiment = 'Neutral';
+                    } else {
+                        detectedSentiment = 'Positive';
+                    }
+                    conversationStep = 0;
+                    setTimeout(() => nextBotMessage(), 1200);
+                } else {
+                    setTimeout(() => nextBotMessage(), 1200);
+                }
             };
             qrDiv.appendChild(btn);
         });
@@ -400,17 +416,30 @@
             });
 
             const data = await response.json();
-            detectedSentiment = data.sentiment;
-            conversationStep = 0;
-            conversationState = 'chatting';
+            const confidence = data.confidence;
 
             await new Promise(r => setTimeout(r, 1500));
             removeTyping();
-            nextBotMessage();
+
+            // CONFIDENCE THRESHOLD CHECK
+            if (confidence < CONFIDENCE_THRESHOLD) {
+                // Low confidence — ask customer directly
+                lowConfidenceMode = true;
+                conversationState = 'chatting';
+                const step = lowConfidenceFlow[0];
+                addMessage(step.bot, 'agent');
+                setTimeout(() => showQuickReplies(step.quickReplies), 400);
+            } else {
+                // High confidence — use model prediction
+                detectedSentiment = data.sentiment;
+                conversationStep = 0;
+                conversationState = 'chatting';
+                nextBotMessage();
+            }
 
         } catch (error) {
             removeTyping();
-            addMessage("I'm sorry, I'm having trouble connecting right now. Please make sure the API is running and try again.", 'agent');
+            addMessage("I am sorry, I am having trouble connecting right now. Please make sure the API is running and try again.", 'agent');
             document.getElementById('reviewInputSection').style.display = 'flex';
             document.getElementById('chatInputRow').style.display = 'none';
             document.getElementById('submitReviewBtn').disabled = false;
@@ -442,7 +471,7 @@
 
     window.onload = () => {
         setTimeout(() => {
-            addMessage("Hello! Welcome to LensWord Customer Support 👋 I'm here to help you today. Please share your experience with our product below.", 'agent');
+            addMessage("Hello! Welcome to LensWord Customer Support 👋 I am here to help you today. Please share your experience with our product below.", 'agent');
         }, 500);
     };
 </script>
