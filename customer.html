@@ -381,15 +381,6 @@
             await new Promise(r => setTimeout(r, 1500));
             removeTyping();
 
-            // Out-of-domain or empty input guard
-            if (data.action === 'cannot_score') {
-                conversationState = 'chatting';
-                addMessage("Thank you for reaching out! 😊 This chat is here to help with your product experience. Could you tell us how your purchase went — were you happy with it, or did something go wrong?", 'agent');
-                setTimeout(() => showQuickReplies(["Something went wrong 😞", "It was just okay 😐", "I am happy with it 😊"]), 400);
-                lowConfidenceMode = true;
-                return;
-            }
-
             // Confidence threshold — if below 75% ask customer directly
             if (data.confidence < CONFIDENCE_THRESHOLD) {
                 showLowConfidenceQuestion();
