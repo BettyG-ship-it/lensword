@@ -101,6 +101,21 @@
 
         .powered-by { text-align: center; font-size: 0.7rem; color: #94A3B8; margin-top: 8px; }
 
+        
+        .start-over-btn {
+            background: none;
+            border: 1.5px solid #94A3B8;
+            color: #94A3B8;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+            margin-top: 6px;
+        }
+        .start-over-btn:hover { border-color: #065A82; color: #065A82; }
+
         .chat-area::-webkit-scrollbar { width: 4px; }
         .chat-area::-webkit-scrollbar-track { background: transparent; }
         .chat-area::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 2px; }
@@ -132,6 +147,10 @@
             <button class="send-btn" id="sendBtn" onclick="sendMessage()">
                 <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
             </button>
+        </div>
+
+        <div id="startOverRow" style="display:none; text-align:center; margin-top:4px;">
+            <button class="start-over-btn" onclick="startOver()">↩ Start Over</button>
         </div>
         <div class="powered-by">Powered by LensWord AI · Bidirectional LSTM + RAG</div>
     </div>
@@ -346,6 +365,7 @@
 
         document.getElementById('reviewInputSection').style.display = 'none';
         document.getElementById('chatInputRow').style.display = 'flex';
+        document.getElementById('startOverRow').style.display = 'block';
 
         showTyping();
 
@@ -360,6 +380,15 @@
 
             await new Promise(r => setTimeout(r, 1500));
             removeTyping();
+
+            // Out-of-domain or empty input guard
+            if (data.action === 'cannot_score') {
+                conversationState = 'chatting';
+                addMessage("Thank you for reaching out! 😊 This chat is here to help with your product experience. Could you tell us how your purchase went — were you happy with it, or did something go wrong?", 'agent');
+                setTimeout(() => showQuickReplies(["Something went wrong 😞", "It was just okay 😐", "I am happy with it 😊"]), 400);
+                lowConfidenceMode = true;
+                return;
+            }
 
             // Confidence threshold — if below 75% ask customer directly
             if (data.confidence < CONFIDENCE_THRESHOLD) {
@@ -393,6 +422,38 @@
         input.style.height = 'auto';
 
         setTimeout(() => nextBotMessage(), 800);
+    }
+
+
+    function startOver() {
+        // Reset all state
+        detectedSentiment = '';
+        conversationStep = 0;
+        conversationState = 'initial';
+        lowConfidenceMode = false;
+
+        // Clear chat area
+        document.getElementById('chatArea').innerHTML = '';
+
+        // Show review input again
+        document.getElementById('reviewInputSection').style.display = 'flex';
+        document.getElementById('chatInputRow').style.display = 'none';
+        document.getElementById('startOverRow').style.display = 'none';
+
+        // Reset submit button
+        document.getElementById('submitReviewBtn').disabled = false;
+        document.getElementById('submitReviewBtn').textContent = 'Send Feedback';
+        document.getElementById('reviewInput').value = '';
+
+        // Reset chat input
+        const chatInput = document.getElementById('chatInput');
+        chatInput.disabled = false;
+        chatInput.placeholder = 'Type your message...';
+
+        // Welcome message again
+        setTimeout(() => {
+            addMessage("Hello! Welcome to LensWord Customer Support 👋 I am here to help you today. Please share your experience with our product below.", 'agent');
+        }, 300);
     }
 
     function handleKeyDown(e) {

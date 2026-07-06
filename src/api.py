@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
         app_state['word2idx'] = pickle.load(f)
     print("Vocabulary loaded!")
 
-    # Load LSTM model — weights_only=True (F9 fix)
+    # Load LSTM model
     model = LensWordLSTM(
         vocab_size=MAX_VOCAB_SIZE,
         embedding_dim=EMBEDDING_DIM,
@@ -71,14 +71,14 @@ async def lifespan(app: FastAPI):
     app_state['model'] = model
     print("LSTM model loaded!")
 
-    # Setup RAG — force recreate collection every startup
+    # Setup RAG
     kb_path = os.path.join(base_dir, 'knowledge_base.csv')
     kb_df = pd.read_csv(kb_path)
 
     embedder = SentenceTransformer('all-MiniLM-L6-v2')
     app_state['embedder'] = embedder
 
-    # Force delete and recreate to ensure collection is always populated
+    # Force recreate collection every startup
     chroma_client = chromadb.Client()
     try:
         chroma_client.delete_collection(name="lensword_kb")
@@ -113,7 +113,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -141,29 +140,23 @@ def pad_sequence(sequence: list, max_length: int) -> list:
 
 # ── RAG response retrieval ───────────────────────────────────
 def get_rag_response(review_text: str, sentiment: str) -> str:
-    # Fallback responses for all three classes
     fallback = {
         'Negative': 'We are sorry to hear about your experience. A customer service representative will contact you within 24 hours to resolve this for you.',
         'Neutral':  'Thank you for your feedback. We would love to know how we can improve your experience further.',
         'Positive': 'Thank you so much for your wonderful feedback! We are thrilled you are enjoying your purchase. We look forward to serving you again soon.'
     }
 
-    # Positive always returns thank you — no RAG needed
     if sentiment == 'Positive':
         return fallback['Positive']
 
-    # For Negative and Neutral — query ChromaDB for best matching response
     try:
         embedder   = app_state['embedder']
         collection = app_state['collection']
-
         query_embedding = embedder.encode([review_text]).tolist()
         results = collection.query(
             query_embeddings=query_embedding,
             n_results=1
         )
-
-        # F3 fix: correct truthiness guard — check documents list length
         if (results
                 and results.get('documents')
                 and len(results['documents']) > 0
@@ -174,12 +167,42 @@ def get_rag_response(review_text: str, sentiment: str) -> str:
             response = results['metadatas'][0][0].get('response', '')
             if response:
                 return response
-
     except Exception as e:
         print(f"RAG query failed: {e}")
 
-    # Return sentiment-appropriate fallback
     return fallback.get(sentiment, 'Thank you for your feedback.')
+
+# ── Out-of-domain detection ───────────────────────────────────
+def is_product_review(text: str) -> bool:
+    """
+    Basic heuristic to detect if input is likely a product/service review.
+    Returns False for very short text or text with no review-like vocabulary.
+    """
+    words = text.lower().split()
+
+    # Too short to be meaningful
+    if len(words) < 4:
+        return False
+
+    # Check for at least some review-like vocabulary
+    review_indicators = [
+        'product', 'item', 'order', 'bought', 'purchased', 'shipping', 'delivery',
+        'quality', 'arrived', 'received', 'return', 'refund', 'broken', 'works',
+        'love', 'hate', 'great', 'awful', 'terrible', 'amazing', 'good', 'bad',
+        'excellent', 'poor', 'disappointed', 'satisfied', 'recommend', 'waste',
+        'money', 'price', 'worth', 'service', 'customer', 'seller', 'package',
+        'box', 'damaged', 'missing', 'wrong', 'perfect', 'happy', 'unhappy',
+        'experience', 'buy', 'buying', 'use', 'using', 'like', 'dislike',
+        'nice', 'cheap', 'expensive', 'fast', 'slow', 'easy', 'difficult',
+        'problem', 'issue', 'defective', 'broken', 'stopped', 'working'
+    ]
+
+    # If at least one review indicator is present — likely a review
+    for word in words:
+        if word in review_indicators:
+            return True
+
+    return False
 
 # ── Request model ────────────────────────────────────────────
 class ReviewRequest(BaseModel):
@@ -212,7 +235,19 @@ def predict_sentiment(request: ReviewRequest):
             "probabilities": {"Negative": 0.0, "Neutral": 0.0, "Positive": 0.0},
             "action":    "cannot_score",
             "priority":  "UNKNOWN",
-            "suggested_response": "We received your message but could not analyze it. Please write your review in English."
+            "suggested_response": "Thank you for reaching out! This chat is designed to help with product and service feedback. Could you tell us about your experience with our product?"
+        }
+
+    # Out-of-domain guard — politely redirect non-review input
+    if not is_product_review(cleaned):
+        return {
+            "text":       request.text,
+            "sentiment":  None,
+            "confidence": 0.0,
+            "probabilities": {"Negative": 0.0, "Neutral": 0.0, "Positive": 0.0},
+            "action":    "cannot_score",
+            "priority":  "UNKNOWN",
+            "suggested_response": "Thank you for reaching out! This chat is designed to help with product and service feedback. Could you tell us about your experience with our product?"
         }
 
     # Preprocess
