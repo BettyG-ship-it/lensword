@@ -1,4 +1,4 @@
-# Virtual environments — both naming conventions
+# Virtual environments
 .venv/
 venv/
 
@@ -21,10 +21,12 @@ notebooks/
 reports/
 screenshots/
 
-# Data — large files not needed in container
-data/
+# Large tensor files — not needed in container
+data/*.pt
 
-# Only copy the one model checkpoint used
+# Keep: data/word2idx.pkl, data/*.csv — needed by API
+
+# Stale model checkpoints — keep only lensword_model.pt
 models/*.png
 models/*.csv
 models/lensword_model_*.pt
