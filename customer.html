@@ -6,123 +6,61 @@
     <title>LensWord — Customer Support</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f0f9ff 0%, #e8f4f8 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 600px;
-            display: flex;
-            flex-direction: column;
-            height: 90vh;
-            max-height: 750px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-            border-radius: 20px;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #065A82, #1C7293);
-            border-radius: 20px 20px 0 0;
-            padding: 20px 25px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #f0f9ff 0%, #e8f4f8 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .container { width: 100%; max-width: 600px; display: flex; flex-direction: column; height: 90vh; max-height: 750px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); border-radius: 20px; }
+        .header { background: linear-gradient(135deg, #065A82, #1C7293); border-radius: 20px 20px 0 0; padding: 20px 25px; display: flex; align-items: center; gap: 15px; }
         .agent-avatar { width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
         .agent-info h2 { color: white; font-size: 1.1rem; font-weight: 600; }
         .agent-info p { color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-top: 2px; }
         .status-dot { width: 8px; height: 8px; background: #10B981; border-radius: 50%; display: inline-block; margin-right: 5px; }
-
         .chat-area { background: white; flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
-
         .message { display: flex; gap: 10px; max-width: 85%; animation: fadeIn 0.3s ease; }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
         .message.agent { align-self: flex-start; }
         .message.customer { align-self: flex-end; flex-direction: row-reverse; }
-
         .message-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; margin-top: 4px; }
         .message.agent .message-avatar { background: #E8F4F8; }
         .message.customer .message-avatar { background: #065A82; }
-
         .message-bubble { padding: 12px 16px; border-radius: 18px; font-size: 0.9rem; line-height: 1.5; max-width: 100%; }
         .message.agent .message-bubble { background: #F1F5F9; color: #1E293B; border-bottom-left-radius: 4px; }
         .message.customer .message-bubble { background: linear-gradient(135deg, #065A82, #1C7293); color: white; border-bottom-right-radius: 4px; }
-
         .message-time { font-size: 0.7rem; color: #94A3B8; margin-top: 4px; padding: 0 4px; }
         .message.customer .message-time { text-align: right; }
-
         .typing { display: flex; gap: 10px; align-self: flex-start; animation: fadeIn 0.3s ease; }
         .typing-bubble { background: #F1F5F9; padding: 12px 16px; border-radius: 18px; border-bottom-left-radius: 4px; display: flex; gap: 4px; align-items: center; }
         .typing-dot { width: 7px; height: 7px; background: #94A3B8; border-radius: 50%; animation: bounce 1.2s infinite; }
         .typing-dot:nth-child(2) { animation-delay: 0.2s; }
         .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
         @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
-
         .quick-replies { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 0 4px 46px; animation: fadeIn 0.3s ease; }
-
         .quick-reply-btn { background: white; border: 1.5px solid #1C7293; color: #1C7293; padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; font-family: inherit; }
         .quick-reply-btn:hover { background: #1C7293; color: white; }
-
         .input-area { background: white; border-top: 1px solid #E2E8F0; padding: 16px 20px; border-radius: 0 0 20px 20px; }
-
         .review-input-section { display: flex; flex-direction: column; gap: 10px; }
         .review-label { font-size: 0.85rem; color: #64748B; font-weight: 500; }
-
         textarea { width: 100%; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 12px; font-size: 0.9rem; font-family: inherit; resize: none; min-height: 80px; color: #1E293B; outline: none; transition: border-color 0.2s; }
         textarea:focus { border-color: #1C7293; }
         textarea::placeholder { color: #CBD5E1; }
-
         .chat-input-row { display: flex; gap: 10px; align-items: flex-end; }
-
         .chat-input { flex: 1; border: 1.5px solid #E2E8F0; border-radius: 24px; padding: 10px 16px; font-size: 0.9rem; font-family: inherit; outline: none; transition: border-color 0.2s; color: #1E293B; resize: none; min-height: 44px; max-height: 120px; }
         .chat-input:focus { border-color: #1C7293; }
         .chat-input::placeholder { color: #CBD5E1; }
-
         .send-btn { width: 44px; height: 44px; background: linear-gradient(135deg, #065A82, #1C7293); border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform 0.2s, opacity 0.2s; }
         .send-btn:hover { transform: scale(1.05); opacity: 0.9; }
         .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
         .send-btn svg { width: 18px; height: 18px; fill: white; }
-
         .submit-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, #065A82, #1C7293); border: none; border-radius: 12px; color: white; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.2s; font-family: inherit; }
         .submit-btn:hover { opacity: 0.9; transform: translateY(-1px); }
         .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-        .powered-by { text-align: center; font-size: 0.7rem; color: #94A3B8; margin-top: 8px; }
-
-        
-        .start-over-btn {
-            background: none;
-            border: 1.5px solid #94A3B8;
-            color: #94A3B8;
-            padding: 5px 14px;
-            border-radius: 20px;
-            font-size: 0.78rem;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.2s;
-            margin-top: 6px;
-        }
+        .start-over-btn { background: none; border: 1.5px solid #94A3B8; color: #94A3B8; padding: 5px 14px; border-radius: 20px; font-size: 0.78rem; cursor: pointer; font-family: inherit; transition: all 0.2s; margin-top: 6px; }
         .start-over-btn:hover { border-color: #065A82; color: #065A82; }
-
+        .powered-by { text-align: center; font-size: 0.7rem; color: #94A3B8; margin-top: 8px; }
         .chat-area::-webkit-scrollbar { width: 4px; }
         .chat-area::-webkit-scrollbar-track { background: transparent; }
         .chat-area::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 2px; }
     </style>
 </head>
 <body>
-
 <div class="container">
     <div class="header">
         <div class="agent-avatar">🤖</div>
@@ -131,24 +69,19 @@
             <p><span class="status-dot"></span>Online — Here to help</p>
         </div>
     </div>
-
     <div class="chat-area" id="chatArea"></div>
-
     <div class="input-area">
         <div class="review-input-section" id="reviewInputSection">
             <div class="review-label">Share your experience with us:</div>
             <textarea id="reviewInput" placeholder="Tell us about your experience with our product..." maxlength="2000"></textarea>
             <button class="submit-btn" id="submitReviewBtn" onclick="submitReview()">Send Feedback</button>
         </div>
-
         <div class="chat-input-row" id="chatInputRow" style="display:none;">
-            <textarea class="chat-input" id="chatInput" placeholder="Type your message..."
-                rows="1" onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
+            <textarea class="chat-input" id="chatInput" placeholder="Type your message..." rows="1" onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
             <button class="send-btn" id="sendBtn" onclick="sendMessage()">
                 <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
             </button>
         </div>
-
         <div id="startOverRow" style="display:none; text-align:center; margin-top:4px;">
             <button class="start-over-btn" onclick="startOver()">↩ Start Over</button>
         </div>
@@ -157,10 +90,7 @@
 </div>
 
 <script>
-    // API base URL — configurable
     const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
-
-    // Confidence threshold — if model confidence below this ask customer directly
     const CONFIDENCE_THRESHOLD = 75.0;
 
     let detectedSentiment = '';
@@ -168,76 +98,54 @@
     let conversationState = 'initial';
     let lowConfidenceMode = false;
 
-    // Full 5-step conversation flows per sentiment
+    // Strong sentiment words — bypass API for these to avoid misclassification
+    const strongNegativeWords = [
+        'hate', 'hated', 'horrible', 'terrible', 'awful', 'worst',
+        'disgusting', 'pathetic', 'useless', 'garbage', 'trash',
+        'scam', 'fraud', 'defective', 'furious', 'outraged',
+        'unacceptable', 'dreadful', 'atrocious', 'appalling',
+        'never again', 'waste of money', 'rip off', 'ripped off'
+    ];
+
+    const strongPositiveWords = [
+        'amazing', 'excellent', 'fantastic', 'outstanding', 'superb',
+        'brilliant', 'perfect', 'wonderful', 'incredible', 'awesome',
+        'love this', 'absolutely love', 'best purchase', 'highly recommend',
+        'five stars', 'exceeded expectations', 'blown away'
+    ];
+
+    function hasStrongNegative(text) {
+        const lower = text.toLowerCase();
+        return strongNegativeWords.some(word => lower.includes(word));
+    }
+
+    function hasStrongPositive(text) {
+        const lower = text.toLowerCase();
+        return strongPositiveWords.some(word => lower.includes(word));
+    }
+
+    // Conversation flows
     const flows = {
         Negative: [
-            {
-                bot: "We're really sorry to hear that you had a negative experience 😔 We want to make this right for you. Could you tell us a bit more about what went wrong?",
-                quickReplies: ["Product quality issue", "Shipping problem", "Wrong item received", "Other issue"]
-            },
-            {
-                bot: "Thank you for letting us know. We completely understand your frustration and we sincerely apologize. Could you please share your order number or the email address used for the purchase so we can look into this immediately?",
-                quickReplies: []
-            },
-            {
-                bot: "Thank you! We have located your account and flagged this as a high priority case. Would you like us to arrange a replacement, a full refund, or store credit?",
-                quickReplies: ["Replacement please", "Full refund", "Store credit", "Not sure yet"]
-            },
-            {
-                bot: "Understood — we have noted your preference. A dedicated customer service representative will contact you within 24 hours to confirm the next steps. Is there anything else you would like us to know?",
-                quickReplies: []
-            },
-            {
-                bot: "Thank you so much for your patience and for giving us the opportunity to make this right. We truly value you as a customer and are committed to resolving this to your full satisfaction. You will hear from us very soon. 🙏",
-                quickReplies: [],
-                final: true
-            }
+            { bot: "We're really sorry to hear that you had a negative experience 😔 We want to make this right for you. Could you tell us a bit more about what went wrong?", quickReplies: ["Product quality issue", "Shipping problem", "Wrong item received", "Other issue"] },
+            { bot: "Thank you for letting us know. We completely understand your frustration and we sincerely apologize. Could you please share your order number or the email address used for the purchase so we can look into this immediately?", quickReplies: [] },
+            { bot: "Thank you! We have located your account and flagged this as a high priority case. Would you like us to arrange a replacement, a full refund, or store credit?", quickReplies: ["Replacement please", "Full refund", "Store credit", "Not sure yet"] },
+            { bot: "Understood — we have noted your preference. A dedicated customer service representative will contact you within 24 hours to confirm the next steps. Is there anything else you would like us to know?", quickReplies: [] },
+            { bot: "Thank you so much for your patience and for giving us the opportunity to make this right. We truly value you as a customer and are committed to resolving this to your full satisfaction. You will hear from us very soon. 🙏", quickReplies: [], final: true }
         ],
         Neutral: [
-            {
-                bot: "Thank you for sharing your feedback with us 😊 We are always working to improve. What do you think we could do better to give you a great experience?",
-                quickReplies: ["Product quality", "Delivery speed", "Customer service", "Pricing", "Something else"]
-            },
-            {
-                bot: "That is really valuable feedback, thank you! Could you tell us a bit more about what specifically could be improved?",
-                quickReplies: []
-            },
-            {
-                bot: "We really appreciate your honest input. Is there anything that would make you more likely to recommend our product to a friend?",
-                quickReplies: ["Better quality", "Lower price", "Faster delivery", "Better support"]
-            },
-            {
-                bot: "Thank you — this kind of feedback is exactly what helps us grow. We will make sure your suggestions reach our product team directly. Would you like to receive updates on improvements we make?",
-                quickReplies: ["Yes please", "No thanks"]
-            },
-            {
-                bot: "Thank you so much for your time and honest feedback. We hope to exceed your expectations next time. Have a wonderful day! 😊",
-                quickReplies: [],
-                final: true
-            }
+            { bot: "Thank you for sharing your feedback with us 😊 We are always working to improve. What do you think we could do better to give you a great experience?", quickReplies: ["Product quality", "Delivery speed", "Customer service", "Pricing", "Something else"] },
+            { bot: "That is really valuable feedback, thank you! Could you tell us a bit more about what specifically could be improved?", quickReplies: [] },
+            { bot: "We really appreciate your honest input. Is there anything that would make you more likely to recommend our product to a friend?", quickReplies: ["Better quality", "Lower price", "Faster delivery", "Better support"] },
+            { bot: "Thank you — this kind of feedback is exactly what helps us grow. We will make sure your suggestions reach our product team directly. Would you like to receive updates on improvements we make?", quickReplies: ["Yes please", "No thanks"] },
+            { bot: "Thank you so much for your time and honest feedback. We hope to exceed your expectations next time. Have a wonderful day! 😊", quickReplies: [], final: true }
         ],
         Positive: [
-            {
-                bot: "Thank you so much for the wonderful feedback! 😊🎉 We are absolutely thrilled to hear you had a great experience! What did you enjoy most about your purchase?",
-                quickReplies: ["Product quality", "Fast delivery", "Great value", "Easy to use", "Customer service"]
-            },
-            {
-                bot: "That is so wonderful to hear! We put a lot of care into every product. Would you like to share your experience as a review? It helps other customers make informed decisions!",
-                quickReplies: ["Yes I would love to", "Maybe later", "No thanks"]
-            },
-            {
-                bot: "Amazing — thank you! As a valued customer, we would love to offer you early access to our newest products and exclusive member discounts. Would you like to join our loyalty program?",
-                quickReplies: ["Yes sign me up!", "Tell me more", "Not right now"]
-            },
-            {
-                bot: "Fantastic! We have noted your interest. You will receive a welcome email with all the details shortly. Is there anything else we can help you with today?",
-                quickReplies: ["No I am good", "Yes one more thing"]
-            },
-            {
-                bot: "Thank you so much for being such a wonderful customer! 🌟 We look forward to serving you again very soon. Have an amazing day!",
-                quickReplies: [],
-                final: true
-            }
+            { bot: "Thank you so much for the wonderful feedback! 😊🎉 We are absolutely thrilled to hear you had a great experience! What did you enjoy most about your purchase?", quickReplies: ["Product quality", "Fast delivery", "Great value", "Easy to use", "Customer service"] },
+            { bot: "That is so wonderful to hear! We put a lot of care into every product. Would you like to share your experience as a review? It helps other customers make informed decisions!", quickReplies: ["Yes I would love to", "Maybe later", "No thanks"] },
+            { bot: "Amazing — thank you! As a valued customer, we would love to offer you early access to our newest products and exclusive member discounts. Would you like to join our loyalty program?", quickReplies: ["Yes sign me up!", "Tell me more", "Not right now"] },
+            { bot: "Fantastic! We have noted your interest. You will receive a welcome email with all the details shortly. Is there anything else we can help you with today?", quickReplies: ["No I am good", "Yes one more thing"] },
+            { bot: "Thank you so much for being such a wonderful customer! 🌟 We look forward to serving you again very soon. Have an amazing day!", quickReplies: [], final: true }
         ]
     };
 
@@ -250,31 +158,17 @@
         const msgDiv = document.createElement('div');
         msgDiv.className = `message ${type}`;
         const avatar = type === 'agent' ? '🤖' : '👤';
-        msgDiv.innerHTML = `
-            <div class="message-avatar">${avatar}</div>
-            <div>
-                <div class="message-bubble">${text}</div>
-                <div class="message-time">${getTime()}</div>
-            </div>
-        `;
+        msgDiv.innerHTML = `<div class="message-avatar">${avatar}</div><div><div class="message-bubble">${text}</div><div class="message-time">${getTime()}</div></div>`;
         chatArea.appendChild(msgDiv);
         chatArea.scrollTop = chatArea.scrollHeight;
     }
 
     function showTyping() {
         const chatArea = document.getElementById('chatArea');
-        const typingDiv = document.createElement('div');
-        typingDiv.className = 'typing';
-        typingDiv.id = 'typingIndicator';
-        typingDiv.innerHTML = `
-            <div class="message-avatar" style="background:#E8F4F8;font-size:18px;">🤖</div>
-            <div class="typing-bubble">
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-            </div>
-        `;
-        chatArea.appendChild(typingDiv);
+        const t = document.createElement('div');
+        t.className = 'typing'; t.id = 'typingIndicator';
+        t.innerHTML = `<div class="message-avatar" style="background:#E8F4F8;font-size:18px;">🤖</div><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+        chatArea.appendChild(t);
         chatArea.scrollTop = chatArea.scrollHeight;
     }
 
@@ -293,8 +187,7 @@
         removeQuickReplies();
         const chatArea = document.getElementById('chatArea');
         const qrDiv = document.createElement('div');
-        qrDiv.className = 'quick-replies';
-        qrDiv.id = 'quickReplies';
+        qrDiv.className = 'quick-replies'; qrDiv.id = 'quickReplies';
         options.forEach(opt => {
             const btn = document.createElement('button');
             btn.className = 'quick-reply-btn';
@@ -304,13 +197,9 @@
                 addMessage(opt, 'customer');
                 if (lowConfidenceMode) {
                     lowConfidenceMode = false;
-                    if (opt.includes('went wrong')) {
-                        detectedSentiment = 'Negative';
-                    } else if (opt.includes('okay')) {
-                        detectedSentiment = 'Neutral';
-                    } else {
-                        detectedSentiment = 'Positive';
-                    }
+                    if (opt.includes('went wrong')) detectedSentiment = 'Negative';
+                    else if (opt.includes('okay')) detectedSentiment = 'Neutral';
+                    else detectedSentiment = 'Positive';
                     conversationStep = 0;
                 }
                 setTimeout(() => nextBotMessage(), 1200);
@@ -331,16 +220,12 @@
     function nextBotMessage() {
         const flow = flows[detectedSentiment];
         if (!flow || conversationStep >= flow.length) return;
-
         showTyping();
         const step = flow[conversationStep];
-        const delay = 1000 + Math.random() * 800;
-
         setTimeout(() => {
             removeTyping();
             addMessage(step.bot, 'agent');
             conversationStep++;
-
             if (step.final) {
                 conversationState = 'resolved';
                 setTimeout(() => {
@@ -351,7 +236,14 @@
             } else {
                 setTimeout(() => showQuickReplies(step.quickReplies), 400);
             }
-        }, delay);
+        }, 1000 + Math.random() * 800);
+    }
+
+    function startFlow(sentiment) {
+        detectedSentiment = sentiment;
+        conversationStep = 0;
+        conversationState = 'chatting';
+        nextBotMessage();
     }
 
     async function submitReview() {
@@ -360,15 +252,29 @@
 
         document.getElementById('submitReviewBtn').disabled = true;
         document.getElementById('submitReviewBtn').textContent = 'Analyzing...';
-
         addMessage(reviewText, 'customer');
-
         document.getElementById('reviewInputSection').style.display = 'none';
         document.getElementById('chatInputRow').style.display = 'flex';
         document.getElementById('startOverRow').style.display = 'block';
-
         showTyping();
 
+        // Layer 1 — Strong negative override (model gets these wrong)
+        if (hasStrongNegative(reviewText)) {
+            await new Promise(r => setTimeout(r, 1000));
+            removeTyping();
+            startFlow('Negative');
+            return;
+        }
+
+        // Layer 2 — Strong positive override
+        if (hasStrongPositive(reviewText)) {
+            await new Promise(r => setTimeout(r, 1000));
+            removeTyping();
+            startFlow('Positive');
+            return;
+        }
+
+        // Layer 3 — Call API
         try {
             const response = await fetch(`${API_BASE}/predict`, {
                 method: 'POST',
@@ -377,19 +283,23 @@
             });
 
             const data = await response.json();
-
             await new Promise(r => setTimeout(r, 1500));
             removeTyping();
 
-            // Confidence threshold — if below 75% ask customer directly
+            // Layer 4 — Out-of-domain or empty
+            if (data.action === 'cannot_score') {
+                conversationState = 'chatting';
+                addMessage("Thank you for reaching out! 😊 This chat is here to help with your product experience. Could you tell us how your purchase went — were you happy with it, or did something go wrong?", 'agent');
+                setTimeout(() => showQuickReplies(["Something went wrong 😞", "It was just okay 😐", "I am happy with it 😊"]), 400);
+                lowConfidenceMode = true;
+                return;
+            }
+
+            // Layer 5 — Confidence threshold
             if (data.confidence < CONFIDENCE_THRESHOLD) {
                 showLowConfidenceQuestion();
             } else {
-                // High confidence — use model prediction directly
-                detectedSentiment = data.sentiment;
-                conversationStep = 0;
-                conversationState = 'chatting';
-                nextBotMessage();
+                startFlow(data.sentiment);
             }
 
         } catch (error) {
@@ -397,6 +307,7 @@
             addMessage("I am sorry, I am having trouble connecting right now. Please make sure the API is running and try again.", 'agent');
             document.getElementById('reviewInputSection').style.display = 'flex';
             document.getElementById('chatInputRow').style.display = 'none';
+            document.getElementById('startOverRow').style.display = 'none';
             document.getElementById('submitReviewBtn').disabled = false;
             document.getElementById('submitReviewBtn').textContent = 'Send Feedback';
         }
@@ -406,45 +317,11 @@
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
         if (!text || conversationState === 'resolved') return;
-
         removeQuickReplies();
         addMessage(text, 'customer');
         input.value = '';
         input.style.height = 'auto';
-
         setTimeout(() => nextBotMessage(), 800);
-    }
-
-
-    function startOver() {
-        // Reset all state
-        detectedSentiment = '';
-        conversationStep = 0;
-        conversationState = 'initial';
-        lowConfidenceMode = false;
-
-        // Clear chat area
-        document.getElementById('chatArea').innerHTML = '';
-
-        // Show review input again
-        document.getElementById('reviewInputSection').style.display = 'flex';
-        document.getElementById('chatInputRow').style.display = 'none';
-        document.getElementById('startOverRow').style.display = 'none';
-
-        // Reset submit button
-        document.getElementById('submitReviewBtn').disabled = false;
-        document.getElementById('submitReviewBtn').textContent = 'Send Feedback';
-        document.getElementById('reviewInput').value = '';
-
-        // Reset chat input
-        const chatInput = document.getElementById('chatInput');
-        chatInput.disabled = false;
-        chatInput.placeholder = 'Type your message...';
-
-        // Welcome message again
-        setTimeout(() => {
-            addMessage("Hello! Welcome to LensWord Customer Support 👋 I am here to help you today. Please share your experience with our product below.", 'agent');
-        }, 300);
     }
 
     function handleKeyDown(e) {
@@ -456,12 +333,27 @@
         el.style.height = Math.min(el.scrollHeight, 120) + 'px';
     }
 
+    function startOver() {
+        detectedSentiment = '';
+        conversationStep = 0;
+        conversationState = 'initial';
+        lowConfidenceMode = false;
+        document.getElementById('chatArea').innerHTML = '';
+        document.getElementById('reviewInputSection').style.display = 'flex';
+        document.getElementById('chatInputRow').style.display = 'none';
+        document.getElementById('startOverRow').style.display = 'none';
+        document.getElementById('submitReviewBtn').disabled = false;
+        document.getElementById('submitReviewBtn').textContent = 'Send Feedback';
+        document.getElementById('reviewInput').value = '';
+        const chatInput = document.getElementById('chatInput');
+        chatInput.disabled = false;
+        chatInput.placeholder = 'Type your message...';
+        setTimeout(() => addMessage("Hello! Welcome to LensWord Customer Support 👋 I am here to help you today. Please share your experience with our product below.", 'agent'), 300);
+    }
+
     window.onload = () => {
-        setTimeout(() => {
-            addMessage("Hello! Welcome to LensWord Customer Support 👋 I am here to help you today. Please share your experience with our product below.", 'agent');
-        }, 500);
+        setTimeout(() => addMessage("Hello! Welcome to LensWord Customer Support 👋 I am here to help you today. Please share your experience with our product below.", 'agent'), 500);
     };
 </script>
-
 </body>
 </html>
