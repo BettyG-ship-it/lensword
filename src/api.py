@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import torch
-import torch.nn as nn
 import pickle
 import re
 import os
@@ -20,23 +19,8 @@ sys.path.append(os.path.abspath('..'))
 from src.config import *
 
 # ── LSTM Model Architecture ──────────────────────────────────
-class LensWordLSTM(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, hidden_dim, num_layers,
-                 num_classes, dropout):
-        super(LensWordLSTM, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim, num_layers=num_layers,
-                            batch_first=True, bidirectional=True, dropout=dropout)
-        self.dropout = nn.Dropout(dropout)
-        self.fc = nn.Linear(hidden_dim * 2, num_classes)
-
-    def forward(self, x):
-        embedded = self.embedding(x)
-        lstm_out, (hidden, cell) = self.lstm(embedded)
-        hidden = torch.cat((hidden[-2], hidden[-1]), dim=1)
-        hidden = self.dropout(hidden)
-        output = self.fc(hidden)
-        return output
+# Single definition in src/model.py — imported here
+from model import LensWordLSTM
 
 # ── Global state ─────────────────────────────────────────────
 app_state = {}
@@ -138,6 +122,27 @@ def pad_sequence(sequence: list, max_length: int) -> list:
         sequence = sequence[:max_length]
     return sequence
 
+# ── Out-of-domain detection ───────────────────────────────────
+def is_product_review(text: str) -> bool:
+    words = text.lower().split()
+    if len(words) < 4:
+        return False
+    review_indicators = [
+        'product', 'item', 'order', 'bought', 'purchased', 'shipping', 'delivery',
+        'quality', 'arrived', 'received', 'return', 'refund', 'broken', 'works',
+        'love', 'hate', 'great', 'awful', 'terrible', 'amazing', 'good', 'bad',
+        'excellent', 'poor', 'disappointed', 'satisfied', 'recommend', 'waste',
+        'money', 'price', 'worth', 'service', 'customer', 'seller', 'package',
+        'box', 'damaged', 'missing', 'wrong', 'perfect', 'happy', 'unhappy',
+        'experience', 'buy', 'buying', 'use', 'using', 'like', 'dislike',
+        'nice', 'cheap', 'expensive', 'fast', 'slow', 'easy', 'difficult',
+        'problem', 'issue', 'defective', 'stopped', 'working'
+    ]
+    for word in words:
+        if word in review_indicators:
+            return True
+    return False
+
 # ── RAG response retrieval ───────────────────────────────────
 def get_rag_response(review_text: str, sentiment: str) -> str:
     fallback = {
@@ -171,38 +176,6 @@ def get_rag_response(review_text: str, sentiment: str) -> str:
         print(f"RAG query failed: {e}")
 
     return fallback.get(sentiment, 'Thank you for your feedback.')
-
-# ── Out-of-domain detection ───────────────────────────────────
-def is_product_review(text: str) -> bool:
-    """
-    Basic heuristic to detect if input is likely a product/service review.
-    Returns False for very short text or text with no review-like vocabulary.
-    """
-    words = text.lower().split()
-
-    # Too short to be meaningful
-    if len(words) < 4:
-        return False
-
-    # Check for at least some review-like vocabulary
-    review_indicators = [
-        'product', 'item', 'order', 'bought', 'purchased', 'shipping', 'delivery',
-        'quality', 'arrived', 'received', 'return', 'refund', 'broken', 'works',
-        'love', 'hate', 'great', 'awful', 'terrible', 'amazing', 'good', 'bad',
-        'excellent', 'poor', 'disappointed', 'satisfied', 'recommend', 'waste',
-        'money', 'price', 'worth', 'service', 'customer', 'seller', 'package',
-        'box', 'damaged', 'missing', 'wrong', 'perfect', 'happy', 'unhappy',
-        'experience', 'buy', 'buying', 'use', 'using', 'like', 'dislike',
-        'nice', 'cheap', 'expensive', 'fast', 'slow', 'easy', 'difficult',
-        'problem', 'issue', 'defective', 'broken', 'stopped', 'working'
-    ]
-
-    # If at least one review indicator is present — likely a review
-    for word in words:
-        if word in review_indicators:
-            return True
-
-    return False
 
 # ── Request model ────────────────────────────────────────────
 class ReviewRequest(BaseModel):
@@ -238,7 +211,7 @@ def predict_sentiment(request: ReviewRequest):
             "suggested_response": "Thank you for reaching out! This chat is designed to help with product and service feedback. Could you tell us about your experience with our product?"
         }
 
-    # Out-of-domain guard — politely redirect non-review input
+    # Out-of-domain guard
     if not is_product_review(cleaned):
         return {
             "text":       request.text,
