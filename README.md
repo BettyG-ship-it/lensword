@@ -9,24 +9,24 @@
 
 ## What is LensWord?
 
-LensWord is an end-to-end deep learning system that automatically classifies Amazon product reviews as **Positive**, **Neutral**, or **Negative** — and uses a RAG (Retrieval-Augmented Generation) system to suggest the most relevant customer service response.
+LensWord automatically classifies product reviews as **Positive**, **Neutral**, or **Negative** and uses a RAG system to suggest the most relevant customer service response.
 
 A star rating tells you HOW unhappy a customer is — LensWord tells you **WHY**, **how urgent it is**, and **exactly what to say back**.
 
 ---
 
-## Honest Results (Clean Pipeline)
+## Honest Results (3-Seed Mean ± Std)
 
 | Model | Accuracy | Macro F1 |
 |---|---|---|
-| **LensWord LSTM (mean 00b1 std, 3 seeds)** | **71.88% 00b1 0.59%** | **0.7201 00b1 0.0052** |
+| **LensWord LSTM (mean ± std, 3 seeds)** | **71.88% ± 0.59%** | **0.7201 ± 0.0052** |
 | NLPTown (zero-shot) | 72.52% | 0.7115 |
 | LiYuan Amazon (zero-shot) | 64.47% | 0.6241 |
 | CardiffNLP Twitter (zero-shot) | 60.68% | 0.5399 |
 
-> **Note:** LensWord was trained on this distribution. HuggingFace models are evaluated zero-shot — they were never shown our data or label rules. The comparison demonstrates domain-specific training value. All models evaluated on the same 1,030 held-out test rows.
+> **Zero-shot caveat:** LensWord was trained on this distribution. HuggingFace models are evaluated zero-shot — they never saw our data or label rules. The Neutral class (3-stars) is defined by our labeling rule and is essentially unknowable to zero-shot models.
 
-### Per-Class F1 Scores
+### Per-Class F1 (Seed 42)
 
 | Class | F1 Score |
 |---|---|
@@ -35,14 +35,23 @@ A star rating tells you HOW unhappy a customer is — LensWord tells you **WHY**
 | Positive | 0.7925 |
 | **Macro F1** | **0.7263** |
 
+### 3-Seed Results
+
+| Seed | Accuracy | Macro F1 |
+|---|---|---|
+| 42 | 72.62% | 0.7263 |
+| 7 | 71.84% | 0.7205 |
+| 123 | 71.17% | 0.7136 |
+| **Mean ± Std** | **71.88% ± 0.59%** | **0.7201 ± 0.0052** |
+
 ---
 
-## Why Numbers Changed
+## Why Numbers Changed From Earlier Runs
 
-Earlier runs reported 88.85% accuracy and 88.40% Macro F1. Following a full pipeline audit these figures were found to be inflated due to:
+Earlier runs reported 88.85% accuracy and 88.40% Macro F1. Following a 46-page advisor review these figures were found to be inflated due to:
 
 - **Duplicate leakage** — ~6,000 duplicate rows distributed across train and test
-- **Vocabulary leakage** — vocabulary fitted on all data including test partition  
+- **Vocabulary leakage** — vocabulary fitted on all data including test partition
 - **Wrong checkpoint** — model selected on accuracy not Macro F1
 - **Invalid SMOTE** — applied to token-index sequences (nominal feature space)
 
@@ -57,25 +66,22 @@ For internal business and customer service teams.
 
 ![Business Dashboard](screenshots/dashboard.png)
 
-**Features:**
 - Real-time sentiment classification with color-coded badge
 - Confidence score and probability breakdown for all three classes
 - Priority level (LOW / MEDIUM / HIGH) from API
-- RAG-powered suggested customer service response from API
+- RAG-powered suggested customer service response
+- Strong sentiment word override for known model weaknesses
 
 ### 2. Customer Chat Interface — `customer.html`
-For direct customer interaction after submitting a review.
+For direct customer interaction.
 
 ![Customer Chat](screenshots/customer_chat.png)
 
-**Features:**
 - Customer submits review naturally
-- System detects sentiment silently — customer never sees technical outputs
-- 5-step empathetic conversation flow based on detected sentiment
-- 75% confidence threshold — low confidence predictions ask customer directly
-- **Negative** → empathetic resolution with replacement/refund options
-- **Neutral** → feedback collection with follow-up questions
-- **Positive** → warm appreciation with loyalty program offer
+- Sentiment detected silently — customer never sees technical outputs
+- Five protection layers including confidence threshold (75%)
+- 5-step empathetic conversation flow per sentiment
+- Start Over button if wrong flow triggers
 
 ---
 
@@ -84,7 +90,7 @@ For direct customer interaction after submitting a review.
 ```
 Review text
         ↓
-Tokenization → word2idx vocabulary (4,340 words, fitted on training only)
+Tokenization → word2idx (4,340 words, fitted on training only)
         ↓
 Padding to 50 tokens
         ↓
@@ -100,13 +106,11 @@ Fully Connected → [3 logits]
         ↓
 Softmax → [3 probabilities]
         ↓
-Sentiment (Negative / Neutral / Positive)
+Sentiment + Priority + Action
         ↓
-RAG System (SentenceTransformer + ChromaDB, 33 entries)
+RAG (SentenceTransformer + ChromaDB, 33 entries)
         ↓
 Suggested Customer Service Response
-        ↓
-index.html (business) or customer.html (customer chat)
 ```
 
 ---
@@ -116,18 +120,16 @@ index.html (business) or customer.html (customer chat)
 ```
 lensword/
 ├── data/
-│   ├── amazon_reviews_cleaned.csv      # Notebook 01 output — READ ONLY
-│   ├── amazon_yelp_combined.csv        # Notebook 02 output
-│   ├── test_texts.csv                  # Test rows saved at split time (provenance)
-│   ├── word2idx.pkl                    # Vocabulary (fitted on training only)
-│   └── *.pt                           # PyTorch tensors
+│   ├── amazon_reviews_cleaned.csv      ← READ ONLY
+│   ├── amazon_yelp_combined.csv        ← notebook 02 output
+│   ├── test_texts.csv                  ← test rows saved at split time
+│   ├── word2idx.pkl                    ← vocabulary (training only)
+│   └── *.pt                           ← PyTorch tensors
 ├── models/
-│   ├── lensword_model.pt              # Trained LSTM weights
-│   ├── metrics.json                   # Official results (all figures from here)
-│   ├── comparison_results.json        # HuggingFace comparison results
-│   ├── confusion_matrix.png
-│   ├── training_curves.png
-│   └── final_model_comparison.png
+│   ├── lensword_model.pt              ← trained model weights
+│   ├── metrics.json                   ← official results (all figures from here)
+│   ├── comparison_results.json        ← HuggingFace comparison
+│   └── *.png                          ← charts
 ├── notebooks/
 │   ├── 01_EDA_lensword.ipynb
 │   ├── 02_preprocessing_lensword.ipynb
@@ -135,16 +137,61 @@ lensword/
 │   ├── 04_evaluation_lensword.ipynb
 │   └── 05_huggingface_comparison_lensword.ipynb
 ├── src/
-│   ├── api.py                         # FastAPI + RAG endpoint
-│   ├── config.py                      # Hyperparameters
-│   └── knowledge_base.csv            # 33-entry RAG knowledge base
+│   ├── api.py                         ← FastAPI + RAG
+│   ├── model.py                       ← LensWordLSTM (single definition)
+│   ├── config.py                      ← hyperparameters
+│   └── knowledge_base.csv            ← 33-entry RAG knowledge base
 ├── screenshots/
 ├── reports/
 ├── Dockerfile
-├── index.html                         # Business dashboard
-├── customer.html                      # Customer chat interface
-└── requirements.txt
+├── .dockerignore
+├── index.html                         ← business dashboard
+├── customer.html                      ← customer chat
+├── requirements.txt
+├── LICENSE
+└── MODEL_CARD.md
 ```
+
+---
+
+## Setup Instructions
+
+```bash
+git clone https://github.com/BettyG-ship-it/lensword.git
+cd lensword
+python -m venv venv
+venv\Scripts\activate        # Windows
+pip install -r requirements.txt
+```
+
+Run notebooks in order (01 → 05), then:
+
+```bash
+cd src
+uvicorn api:app --reload
+```
+
+Open `index.html` or `customer.html` in browser. API docs at `http://127.0.0.1:8000/docs`.
+
+### Docker
+
+```bash
+docker build -t lensword .
+docker run --name lensword-app -p 8000:8000 lensword
+```
+
+---
+
+## Key Limitations
+
+- Overfitting — ~21% gap (train 93.55% vs test 72.62%) due to limited data
+- Neutral class weakest (F1: 0.6396) — 3-star label is an artifact of our rule
+- Negation handling weakness — addressed at application layer via word overrides
+- English only
+- Local deployment only — HuggingFace Spaces deployment is future work
+- No CI/CD pipeline — future work
+
+See `MODEL_CARD.md` for complete limitations list.
 
 ---
 
@@ -153,106 +200,11 @@ lensword/
 | Layer | Tools |
 |---|---|
 | Deep Learning | PyTorch — Bidirectional LSTM |
-| Text Processing | Custom tokenizer, inverse-frequency class weights |
-| Data | Amazon Alexa Reviews (Kaggle) + Yelp Reviews (HuggingFace) |
 | RAG | ChromaDB + SentenceTransformers (all-MiniLM-L6-v2) |
 | API | FastAPI + Uvicorn |
 | Frontend | HTML + CSS + JavaScript |
 | Containerization | Docker |
-| Version Control | GitHub |
-
----
-
-## HuggingFace Resources Used
-
-| Resource | Purpose |
-|---|---|
-| `Yelp/yelp_review_full` | 8,000 additional training reviews |
-| `nlptown/bert-base-multilingual-uncased-sentiment` | Zero-shot comparison baseline |
-| `LiYuan/amazon-review-sentiment-analysis` | Zero-shot comparison baseline |
-| `cardiffnlp/twitter-roberta-base-sentiment-latest` | Zero-shot comparison baseline |
-| `sentence-transformers/all-MiniLM-L6-v2` | RAG embeddings (384-dim vectors) |
-
----
-
-## Setup Instructions
-
-### Prerequisites
-- Python 3.11+
-- Git
-
-### 1. Clone the repository
-```bash
-git clone https://github.com/BettyG-ship-it/lensword.git
-cd lensword
-```
-
-### 2. Create and activate virtual environment
-```bash
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-source .venv/bin/activate     # Mac/Linux
-```
-
-### 3. Install dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Run notebooks in order
-```
-01_EDA_lensword.ipynb
-02_preprocessing_lensword.ipynb
-03_model_training_lensword.ipynb
-04_evaluation_lensword.ipynb
-05_huggingface_comparison_lensword.ipynb
-```
-
-### 5. Start the API
-```bash
-cd src
-uvicorn api:app --reload
-```
-
-### 6. Open the interfaces
-- **Business Dashboard:** Open `index.html` in your browser
-- **Customer Chat:** Open `customer.html` in your browser
-- **API Docs:** http://127.0.0.1:8000/docs
-
----
-
-## Docker
-```bash
-docker build -t lensword .
-docker run -p 8000:8000 lensword
-```
-
----
-
-## Model Details
-
-| Parameter | Value |
-|---|---|
-| Architecture | Bidirectional LSTM |
-| Layers | 2 |
-| Hidden Dimensions | 64 |
-| Embedding Dimensions | 64 |
-| Vocabulary Size | 4,340 (fitted on training only) |
-| Max Sequence Length | 50 tokens |
-| Total Parameters | 444,035 |
-| Optimizer | AdamW (weight_decay=1e-4) |
-| Dropout | 0.4 |
-| Test Accuracy | 72.62% |
-| Test Macro F1 | 0.7263 |
-
----
-
-## Known Limitations
-
-- Overfitting present — ~10% gap between training and validation accuracy due to limited dataset size
-- Neutral class is hardest to classify (F1: 0.6396) — 3-star reviews are genuinely ambiguous
-- English language only
-- RAG knowledge base contains 33 entries
+| Data | Amazon Alexa Reviews (Kaggle) + Yelp Reviews (HuggingFace) |
 
 ---
 
@@ -266,3 +218,5 @@ This project was completed as part of the AI/ML Engineering Program at Apeiron A
 
 **Betty George** — Co-Lead, AI/ML Engineering Program  
 **Miheret Woldegabrial** — Co-Lead, AI/ML Engineering Program
+
+
