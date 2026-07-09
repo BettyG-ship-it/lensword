@@ -6,7 +6,6 @@
     <title>LensWord Customer Support</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #0F172A 0%, #065A82 50%, #0F172A 100%);
@@ -16,7 +15,6 @@
             justify-content: center;
             padding: 20px;
         }
-
         .container {
             width: 100%;
             max-width: 480px;
@@ -28,8 +26,6 @@
             overflow: hidden;
             box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08);
         }
-
-        /* HEADER */
         .header {
             background: linear-gradient(135deg, #065A82, #1C7293);
             padding: 18px 22px;
@@ -42,334 +38,88 @@
         .header::before {
             content: '';
             position: absolute;
-            top: -50%;
-            right: -20px;
-            width: 120px;
-            height: 120px;
+            top: -50%; right: -20px;
+            width: 120px; height: 120px;
             background: rgba(255,255,255,0.05);
             border-radius: 50%;
         }
         .avatar {
-            width: 46px;
-            height: 46px;
+            width: 46px; height: 46px;
             background: rgba(255,255,255,0.15);
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; flex-shrink: 0;
             border: 2px solid rgba(255,255,255,0.2);
         }
-        .header-info h2 {
-            color: white;
-            font-size: 1rem;
-            font-weight: 700;
-        }
-        .header-info p {
-            color: rgba(255,255,255,0.65);
-            font-size: 0.75rem;
-            margin-top: 2px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .online-dot {
-            width: 7px;
-            height: 7px;
-            background: #10B981;
-            border-radius: 50%;
-            display: inline-block;
-            animation: blink 2s infinite;
-        }
+        .header-info h2 { color: white; font-size: 1rem; font-weight: 700; }
+        .header-info p { color: rgba(255,255,255,0.65); font-size: 0.75rem; margin-top: 2px; display: flex; align-items: center; gap: 5px; }
+        .online-dot { width: 7px; height: 7px; background: #10B981; border-radius: 50%; display: inline-block; animation: blink 2s infinite; }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-        .ticket-chip {
-            margin-left: auto;
-            background: rgba(255,255,255,0.12);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: white;
-            font-size: 0.7rem;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: 600;
-            display: none;
-        }
-
-        /* CHAT AREA */
+        .ticket-chip { margin-left: auto; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: white; font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: 600; display: none; }
         .chat-area {
-            flex: 1;
-            background: #F8FAFC;
-            overflow-y: auto;
-            padding: 20px 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
+            flex: 1; background: #F8FAFC;
+            overflow-y: auto; padding: 20px 16px;
+            display: flex; flex-direction: column; gap: 14px;
             scroll-behavior: smooth;
         }
-
-        /* DATE BADGE */
-        .date-badge {
-            text-align: center;
-            font-size: 0.7rem;
-            color: #94A3B8;
-            background: #E2E8F0;
-            padding: 3px 12px;
-            border-radius: 20px;
-            width: fit-content;
-            margin: 0 auto;
-        }
-
-        /* MESSAGES */
+        .date-badge { text-align: center; font-size: 0.7rem; color: #94A3B8; background: #E2E8F0; padding: 3px 12px; border-radius: 20px; width: fit-content; margin: 0 auto; }
         .message { display: flex; gap: 8px; max-width: 88%; animation: slideIn 0.3s ease; }
         @keyframes slideIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         .message.bot      { align-self: flex-start; }
         .message.customer { align-self: flex-end; flex-direction: row-reverse; }
-
-        .msg-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
+        .message.agent    { align-self: flex-start; }
+        .msg-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; margin-top: 2px; }
         .message.bot .msg-avatar      { background: linear-gradient(135deg, #065A82, #1C7293); }
         .message.customer .msg-avatar { background: linear-gradient(135deg, #7C3AED, #9F67FA); }
-
+        .message.agent .msg-avatar    { background: linear-gradient(135deg, #059669, #10B981); }
         .msg-content { display: flex; flex-direction: column; gap: 3px; }
         .message.customer .msg-content { align-items: flex-end; }
-
-        .msg-bubble {
-            padding: 11px 15px;
-            border-radius: 18px;
-            font-size: 0.88rem;
-            line-height: 1.55;
-            max-width: 100%;
-        }
-        .message.bot .msg-bubble {
-            background: white;
-            color: #1E293B;
-            border-bottom-left-radius: 4px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-        }
-        .message.customer .msg-bubble {
-            background: linear-gradient(135deg, #065A82, #1C7293);
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-
-        .msg-time {
-            font-size: 0.65rem;
-            color: #94A3B8;
-            padding: 0 4px;
-        }
-
-        /* TYPING */
+        .msg-bubble { padding: 11px 15px; border-radius: 18px; font-size: 0.88rem; line-height: 1.55; max-width: 100%; }
+        .message.bot .msg-bubble      { background: white; color: #1E293B; border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .message.customer .msg-bubble { background: linear-gradient(135deg, #065A82, #1C7293); color: white; border-bottom-right-radius: 4px; }
+        .message.agent .msg-bubble    { background: #ECFDF5; color: #065F46; border-bottom-left-radius: 4px; border-left: 3px solid #10B981; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .msg-time { font-size: 0.65rem; color: #94A3B8; padding: 0 4px; }
         .typing { display: flex; gap: 8px; align-self: flex-start; animation: slideIn 0.3s ease; }
-        .typing-bubble {
-            background: white;
-            padding: 12px 16px;
-            border-radius: 18px;
-            border-bottom-left-radius: 4px;
-            display: flex;
-            gap: 4px;
-            align-items: center;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-        }
-        .dot {
-            width: 7px; height: 7px;
-            background: #94A3B8;
-            border-radius: 50%;
-            animation: bounce 1.2s infinite;
-        }
+        .typing-bubble { background: white; padding: 12px 16px; border-radius: 18px; border-bottom-left-radius: 4px; display: flex; gap: 4px; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .dot { width: 7px; height: 7px; background: #94A3B8; border-radius: 50%; animation: bounce 1.2s infinite; }
         .dot:nth-child(2) { animation-delay: 0.2s; }
         .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
-
-        /* QUICK REPLIES */
-        .quick-replies {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            padding-left: 40px;
-            animation: slideIn 0.3s ease;
-        }
-        .qr-btn {
-            background: white;
-            border: 1.5px solid #1C7293;
-            color: #1C7293;
-            padding: 7px 16px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-            font-weight: 500;
-        }
+        .quick-replies { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 40px; animation: slideIn 0.3s ease; }
+        .qr-btn { background: white; border: 1.5px solid #1C7293; color: #1C7293; padding: 7px 16px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; font-family: inherit; font-weight: 500; }
         .qr-btn:hover { background: #1C7293; color: white; transform: translateY(-1px); }
-
-        /* SATISFACTION */
-        .satisfaction-row {
-            display: flex;
-            gap: 6px;
-            padding-left: 40px;
-            animation: slideIn 0.3s ease;
-        }
-        .star-btn {
-            background: none;
-            border: 1.5px solid #E2E8F0;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
+        .satisfaction-row { display: flex; gap: 6px; padding-left: 40px; animation: slideIn 0.3s ease; }
+        .star-btn { background: none; border: 1.5px solid #E2E8F0; width: 40px; height: 40px; border-radius: 50%; font-size: 18px; cursor: pointer; transition: all 0.2s; font-family: inherit; }
         .star-btn:hover { border-color: #FFC107; transform: scale(1.15); }
         .star-btn.selected { border-color: #FFC107; background: #FFF8E1; }
-
-        /* INPUT AREA */
-        .input-area {
-            background: white;
-            border-top: 1px solid #E2E8F0;
-            padding: 14px 16px;
-        }
-
+        .escalated-banner { background: #FFF3E0; border: 1px solid #FFB74D; border-radius: 12px; padding: 12px 16px; margin: 8px 0; font-size: 0.85rem; color: #E65100; text-align: center; animation: slideIn 0.3s ease; }
+        .input-area { background: white; border-top: 1px solid #E2E8F0; padding: 14px 16px; }
         .review-section { display: flex; flex-direction: column; gap: 10px; }
         .review-label { font-size: 0.82rem; color: #64748B; font-weight: 500; }
-
-        .review-input {
-            width: 100%;
-            border: 1.5px solid #E2E8F0;
-            border-radius: 14px;
-            padding: 12px 15px;
-            font-size: 0.88rem;
-            font-family: inherit;
-            resize: none;
-            min-height: 85px;
-            color: #1E293B;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
-            line-height: 1.5;
-        }
-        .review-input:focus {
-            border-color: #1C7293;
-            box-shadow: 0 0 0 3px rgba(28,114,147,0.1);
-        }
+        .review-input { width: 100%; border: 1.5px solid #E2E8F0; border-radius: 14px; padding: 12px 15px; font-size: 0.88rem; font-family: inherit; resize: none; min-height: 85px; color: #1E293B; outline: none; transition: border-color 0.2s, box-shadow 0.2s; line-height: 1.5; }
+        .review-input:focus { border-color: #1C7293; box-shadow: 0 0 0 3px rgba(28,114,147,0.1); }
         .review-input::placeholder { color: #CBD5E1; }
-
         .input-footer { display: flex; align-items: center; justify-content: space-between; }
         .char-count { font-size: 0.72rem; color: #94A3B8; }
-
-        .submit-btn {
-            background: linear-gradient(135deg, #065A82, #1C7293);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            padding: 11px 24px;
-            font-size: 0.88rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .submit-btn { background: linear-gradient(135deg, #065A82, #1C7293); border: none; border-radius: 12px; color: white; padding: 11px 24px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; display: flex; align-items: center; gap: 6px; }
         .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(6,90,130,0.35); }
         .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-
-        /* VOICE BUTTON */
-        .voice-btn {
-            background: none;
-            border: 1.5px solid #E2E8F0;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            transition: all 0.2s;
-            color: #64748B;
-        }
-        .voice-btn:hover { border-color: #1C7293; color: #1C7293; }
-        .voice-btn.recording { border-color: #FF6363; color: #FF6363; animation: pulse 1s infinite; }
+        .voice-btn { background: none; border: 1.5px solid #E2E8F0; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.2s; }
+        .voice-btn:hover { border-color: #1C7293; }
+        .voice-btn.recording { border-color: #FF6363; animation: pulse 1s infinite; }
         @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
-
-        /* CHAT INPUT ROW */
-        .chat-input-row {
-            display: flex;
-            gap: 8px;
-            align-items: flex-end;
-        }
-        .chat-text-input {
-            flex: 1;
-            border: 1.5px solid #E2E8F0;
-            border-radius: 24px;
-            padding: 10px 16px;
-            font-size: 0.88rem;
-            font-family: inherit;
-            outline: none;
-            color: #1E293B;
-            resize: none;
-            min-height: 44px;
-            max-height: 110px;
-            transition: border-color 0.2s;
-            line-height: 1.4;
-        }
+        .chat-input-row { display: flex; gap: 8px; align-items: flex-end; }
+        .chat-text-input { flex: 1; border: 1.5px solid #E2E8F0; border-radius: 24px; padding: 10px 16px; font-size: 0.88rem; font-family: inherit; outline: none; color: #1E293B; resize: none; min-height: 44px; max-height: 110px; transition: border-color 0.2s; line-height: 1.4; }
         .chat-text-input:focus { border-color: #1C7293; }
         .chat-text-input::placeholder { color: #CBD5E1; }
-        .send-btn {
-            width: 44px;
-            height: 44px;
-            background: linear-gradient(135deg, #065A82, #1C7293);
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: all 0.2s;
-        }
+        .send-btn { width: 44px; height: 44px; background: linear-gradient(135deg, #065A82, #1C7293); border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
         .send-btn:hover { transform: scale(1.05); }
         .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
         .send-btn svg { width: 18px; height: 18px; fill: white; }
-
-        /* START OVER */
-        .bottom-bar {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding-top: 8px;
-        }
-        .start-over-btn {
-            background: none;
-            border: none;
-            color: #94A3B8;
-            font-size: 0.75rem;
-            cursor: pointer;
-            font-family: inherit;
-            transition: color 0.2s;
-            padding: 4px 8px;
-        }
+        .bottom-bar { display: flex; align-items: center; justify-content: center; padding-top: 8px; }
+        .start-over-btn { background: none; border: none; color: #94A3B8; font-size: 0.75rem; cursor: pointer; font-family: inherit; transition: color 0.2s; padding: 4px 8px; }
         .start-over-btn:hover { color: #1C7293; }
-
-        .powered-by {
-            text-align: center;
-            font-size: 0.68rem;
-            color: #CBD5E1;
-            padding-top: 4px;
-        }
-
-        /* SCROLLBAR */
+        .powered-by { text-align: center; font-size: 0.68rem; color: #CBD5E1; padding-top: 4px; }
         .chat-area::-webkit-scrollbar { width: 3px; }
         .chat-area::-webkit-scrollbar-track { background: transparent; }
         .chat-area::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 2px; }
@@ -377,8 +127,6 @@
 </head>
 <body>
 <div class="container">
-
-    <!-- HEADER -->
     <div class="header">
         <div class="avatar">🤖</div>
         <div class="header-info">
@@ -388,14 +136,11 @@
         <div class="ticket-chip" id="ticketChip"></div>
     </div>
 
-    <!-- CHAT -->
     <div class="chat-area" id="chatArea">
         <div class="date-badge" id="dateBadge"></div>
     </div>
 
-    <!-- INPUT -->
-    <div class="input-area" id="inputArea">
-        <!-- Initial review input -->
+    <div class="input-area">
         <div class="review-section" id="reviewSection">
             <div class="review-label">Tell us about your experience</div>
             <textarea class="review-input" id="reviewInput"
@@ -414,15 +159,14 @@
             </div>
         </div>
 
-        <!-- Chat input (after review submitted) -->
-        <div id="chatSection" style="display:none;">
+        <div id="chatSection" style="display:none;flex-direction:column;">
             <div class="chat-input-row">
                 <textarea class="chat-text-input" id="chatInput"
                     placeholder="Type a message..."
                     rows="1"
                     onkeydown="handleKey(event)"
                     oninput="autoResize(this)"></textarea>
-                <button class="voice-btn" id="voiceBtn2" onclick="toggleVoice()" title="Voice input">🎤</button>
+                <button class="voice-btn" onclick="toggleVoice()" title="Voice input">🎤</button>
                 <button class="send-btn" id="sendBtn" onclick="sendMessage()">
                     <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
                 </button>
@@ -432,69 +176,37 @@
             </div>
         </div>
 
-        <div class="powered-by">Powered by LensWord AI · Bidirectional LSTM + RAG</div>
+        <div class="powered-by">Powered by LensWord AI · LSTM + RAG + Groq + LangGraph</div>
     </div>
-
 </div>
 
 <script>
     const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
     const CONFIDENCE_THRESHOLD = 75.0;
-    const PAGE_SIZE = 50;
 
-    let detectedSentiment  = '';
-    let conversationStep   = 0;
-    let conversationState  = 'initial';
-    let lowConfidenceMode  = false;
-    let currentTicketId    = null;
-    let currentWs          = null;
-
-    // Strong sentiment overrides
+    // Strong word overrides — client side safety net
     const strongNegativeWords = [
         'hate','hated','horrible','terrible','awful','worst','disgusting',
         'pathetic','useless','garbage','trash','scam','fraud','defective',
-        'furious','outraged','unacceptable','dreadful','atrocious','appalling',
-        'never again','waste of money','rip off','ripped off'
+        'furious','outraged','unacceptable','dreadful','never again',
+        'waste of money','rip off','ripped off'
     ];
     const strongPositiveWords = [
         'amazing','excellent','fantastic','outstanding','superb','brilliant',
-        'perfect','wonderful','incredible','awesome','love this','absolutely love',
+        'perfect','wonderful','incredible','awesome','love this',
         'best purchase','highly recommend','five stars','exceeded expectations'
     ];
 
-    function hasStrongNegative(text) {
-        const l = text.toLowerCase();
-        return strongNegativeWords.some(w => l.includes(w));
-    }
-    function hasStrongPositive(text) {
-        const l = text.toLowerCase();
-        return strongPositiveWords.some(w => l.includes(w));
-    }
+    function hasStrongNegative(text) { return strongNegativeWords.some(w => text.toLowerCase().includes(w)); }
+    function hasStrongPositive(text) { return strongPositiveWords.some(w => text.toLowerCase().includes(w)); }
 
-    // Conversation flows
-    const flows = {
-        Negative: [
-            { bot: "We are really sorry to hear that 😔 We want to make this right for you. Could you tell us a bit more about what went wrong?", qr: ["Product quality issue", "Shipping problem", "Wrong item received", "Something else"] },
-            { bot: "Thank you for telling us. We completely understand how frustrating this must be and we sincerely apologize. Could you share your order number or the email you used when purchasing so we can look into this right away?", qr: [] },
-            { bot: "Thank you! We found your account and flagged this as high priority. Would you prefer a replacement, a full refund, or store credit?", qr: ["Replacement please", "Full refund", "Store credit", "Not sure yet"] },
-            { bot: "Got it, we have noted your preference. A dedicated support agent will reach out within 24 hours to confirm everything. Is there anything else we should know?", qr: [] },
-            { bot: "Thank you so much for your patience. We truly value you as a customer and we are committed to sorting this out for you. You will hear from us very soon. 🙏", qr: [], final: true }
-        ],
-        Neutral: [
-            { bot: "Thanks for sharing your thoughts with us 😊 We are always looking to improve. What do you think we could do better?", qr: ["Product quality", "Delivery speed", "Customer service", "Pricing", "Something else"] },
-            { bot: "That is really helpful feedback, thank you! Can you tell us a bit more about what specifically could be better?", qr: [] },
-            { bot: "We really appreciate your honesty. Is there anything that would make you more likely to recommend us to a friend?", qr: ["Better quality", "Lower price", "Faster delivery", "Better support"] },
-            { bot: "This kind of feedback genuinely helps us improve. We will pass your suggestions straight to our product team. Would you like updates when we make changes?", qr: ["Yes please!", "No thanks"] },
-            { bot: "Thank you so much for taking the time. We really hope to impress you next time. Have a great day! 😊", qr: [], final: true }
-        ],
-        Positive: [
-            { bot: "That is wonderful to hear! 😊🎉 We are so glad you had a great experience. What did you enjoy most about your purchase?", qr: ["Product quality", "Fast delivery", "Great value", "Easy to use", "Great support"] },
-            { bot: "That really means a lot to us! We put a lot of care into every product. Would you be happy to share your experience as a review? It really helps other customers.", qr: ["Yes I would love to!", "Maybe later", "No thanks"] },
-            { bot: "Brilliant! As one of our valued customers we would love to offer you early access to new products and exclusive discounts. Want to join our loyalty program?", qr: ["Yes sign me up!", "Tell me more", "Not right now"] },
-            { bot: "Fantastic! We have noted your interest and you will get a welcome email with all the details very soon. Is there anything else we can help with today?", qr: ["No I am all good", "Yes one more thing"] },
-            { bot: "Thank you so much for being such a wonderful customer! 🌟 We cannot wait to serve you again. Have an amazing day!", qr: [], final: true }
-        ]
-    };
+    let currentTicketId    = null;
+    let currentStep        = null;
+    let originalSentiment  = null;
+    let originalReview     = null;
+    let conversationState  = 'initial';
+    let currentWs          = null;
+    let recognition        = null;
 
     function getTime() {
         return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -504,18 +216,18 @@
         const chat = document.getElementById('chatArea');
         const div  = document.createElement('div');
         div.className = `message ${type}`;
-        const emoji = type === 'bot' ? '🤖' : '👤';
+        const emojis = { bot: '🤖', customer: '👤', agent: '👩‍💼' };
         div.innerHTML = `
-            <div class="msg-avatar">${emoji}</div>
+            <div class="msg-avatar">${emojis[type] || '👤'}</div>
             <div class="msg-content">
                 <div class="msg-bubble">${text}</div>
-                <div class="msg-time">${getTime()}</div>
+                <div class="msg-time">${type === 'agent' ? 'Agent · ' : ''}${getTime()}</div>
             </div>
         `;
         chat.appendChild(div);
         chat.scrollTop = chat.scrollHeight;
 
-        // Save message to DB if ticket exists
+        // Save to DB
         if (currentTicketId && type !== 'bot') {
             fetch(`${API_BASE}/message`, {
                 method: 'POST',
@@ -545,10 +257,10 @@
     }
 
     function removeQuickReplies() {
-        const qr = document.getElementById('quickReplies');
-        if (qr) qr.remove();
-        const sr = document.getElementById('satisfactionRow');
-        if (sr) sr.remove();
+        ['quickReplies','satisfactionRow'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        });
     }
 
     function showQuickReplies(options) {
@@ -564,13 +276,7 @@
             btn.onclick = () => {
                 removeQuickReplies();
                 addMessage(opt, 'customer');
-                if (lowConfidenceMode) {
-                    lowConfidenceMode = false;
-                    detectedSentiment = opt.includes('went wrong') || opt.includes('Something') ? 'Negative'
-                                      : opt.includes('okay') ? 'Neutral' : 'Positive';
-                    conversationStep = 0;
-                }
-                setTimeout(() => nextBotMessage(), 1000);
+                continueConversation(opt);
             };
             div.appendChild(btn);
         });
@@ -581,21 +287,14 @@
     function showSatisfaction() {
         removeQuickReplies();
         const chat = document.getElementById('chatArea');
-
-        // Ask for rating
         addMessage("Before you go, how would you rate our support today? 😊", 'bot');
-
         const div = document.createElement('div');
         div.className = 'satisfaction-row'; div.id = 'satisfactionRow';
         [1,2,3,4,5].forEach(n => {
             const btn = document.createElement('button');
-            btn.className = 'star-btn';
-            btn.textContent = '⭐';
-            btn.title = `${n} star${n>1?'s':''}`;
+            btn.className = 'star-btn'; btn.textContent = '⭐';
             btn.onclick = async () => {
-                document.querySelectorAll('.star-btn').forEach((b,i) => {
-                    b.classList.toggle('selected', i < n);
-                });
+                document.querySelectorAll('.star-btn').forEach((b,i) => b.classList.toggle('selected', i < n));
                 if (currentTicketId) {
                     await fetch(`${API_BASE}/satisfaction`, {
                         method: 'POST',
@@ -606,6 +305,9 @@
                 setTimeout(() => {
                     removeQuickReplies();
                     addMessage(`Thank you for the ${n} star rating! That really helps us improve. 🙏`, 'bot');
+                    document.getElementById('chatInput').disabled = true;
+                    document.getElementById('sendBtn').disabled   = true;
+                    document.getElementById('chatInput').placeholder = 'Thank you for chatting with us!';
                 }, 600);
             };
             div.appendChild(btn);
@@ -614,173 +316,206 @@
         chat.scrollTop = chat.scrollHeight;
     }
 
-    function showLowConfidenceQuestion() {
-        lowConfidenceMode = true;
-        conversationState = 'chatting';
-        addMessage("Thanks for getting in touch! Just so we can help you best, could you tell us how your experience went?", 'bot');
-        setTimeout(() => showQuickReplies(["Something went wrong 😞", "It was just okay 😐", "I am happy with it 😊"]), 400);
+    function showEscalatedBanner() {
+        const chat = document.getElementById('chatArea');
+        const div  = document.createElement('div');
+        div.className = 'escalated-banner';
+        div.innerHTML = '👩‍💼 You are now being connected with a live support agent. They will respond shortly.';
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
     }
 
-    function nextBotMessage() {
-        const flow = flows[detectedSentiment];
-        if (!flow || conversationStep >= flow.length) return;
+    // Process LangGraph messages from server
+    function processLangMessages(messages, step, resolved, escalated, sentimentShift) {
+        if (escalated) {
+            showEscalatedBanner();
+            conversationState = 'escalated';
+            return;
+        }
+
+        if (sentimentShift) {
+            console.log(`Sentiment shifted to: ${sentimentShift}`);
+            originalSentiment = sentimentShift;
+        }
+
+        messages.forEach(msg => {
+            setTimeout(() => addMessage(msg.message, 'bot'), 400);
+        });
+
+        currentStep = step;
+
+        if (resolved) {
+            conversationState = 'resolved';
+            setTimeout(showSatisfaction, 1200);
+        }
+
+        // Show appropriate quick replies based on step
+        const stepReplies = {
+            'collect_order':      [],
+            'offer_resolution':   ['Replacement please', 'Full refund', 'Store credit', 'Not sure yet'],
+            'confirm_resolution': [],
+            'closing_negative':   [],
+            'collect_feedback':   ['Product quality', 'Delivery speed', 'Customer service', 'Pricing'],
+            'closing_neutral':    [],
+            'ask_review':         ['Yes I would love to!', 'Maybe later', 'No thanks'],
+            'closing_positive':   [],
+        };
+
+        const replies = stepReplies[step];
+        if (replies !== undefined && replies.length > 0) {
+            setTimeout(() => showQuickReplies(replies), 600);
+        }
+    }
+
+    async function continueConversation(customerMessage) {
+        if (!currentTicketId || conversationState === 'resolved' || conversationState === 'escalated') return;
+
         showTyping();
-        const step  = flow[conversationStep];
-        const delay = 900 + Math.random() * 700;
 
-        setTimeout(() => {
+        try {
+            const res  = await fetch(`${API_BASE}/chat/continue`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ticket_id:          currentTicketId,
+                    message:            customerMessage,
+                    current_step:       currentStep,
+                    review_text:        originalReview,
+                    original_sentiment: originalSentiment
+                })
+            });
+
+            const data = await res.json();
+            await new Promise(r => setTimeout(r, 800));
             removeTyping();
-            addMessage(step.bot, 'bot');
-            conversationStep++;
 
-            if (step.final) {
-                conversationState = 'resolved';
-                // Update ticket status
-                if (currentTicketId) {
-                    fetch(`${API_BASE}/ticket/status`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ticket_id: currentTicketId, status: 'resolved' })
-                    }).catch(() => {});
-                }
-                setTimeout(showSatisfaction, 800);
-                setTimeout(() => {
-                    document.getElementById('chatInput').disabled = true;
-                    document.getElementById('sendBtn').disabled   = true;
-                    document.getElementById('chatInput').placeholder = 'Thank you for chatting with us!';
-                }, 1000);
-            } else {
-                setTimeout(() => showQuickReplies(step.qr), 400);
-            }
-        }, delay);
-    }
+            processLangMessages(
+                data.messages || [],
+                data.step,
+                data.resolved,
+                data.escalated,
+                data.sentiment_shift
+            );
 
-    function startFlow(sentiment) {
-        detectedSentiment  = sentiment;
-        conversationStep   = 0;
-        conversationState  = 'chatting';
-        nextBotMessage();
+        } catch(e) {
+            removeTyping();
+            addMessage("Sorry, I had a bit of trouble processing that. Could you try again?", 'bot');
+        }
     }
 
     async function submitReview() {
         const text = document.getElementById('reviewInput').value.trim();
-        if (!text) { return; }
+        if (!text) return;
 
-        document.getElementById('submitBtn').disabled  = true;
+        document.getElementById('submitBtn').disabled = true;
         document.getElementById('submitBtn').textContent = 'Analyzing...';
 
         addMessage(text, 'customer');
-
         document.getElementById('reviewSection').style.display = 'none';
         document.getElementById('chatSection').style.display   = 'flex';
-        document.getElementById('chatSection').style.flexDirection = 'column';
 
         showTyping();
 
-        // Strong word overrides
-        if (hasStrongNegative(text)) {
-            await new Promise(r => setTimeout(r, 900));
-            removeTyping();
-            // Still call API to save to DB
-            callAPI(text, 'Negative');
-            return;
-        }
-        if (hasStrongPositive(text)) {
-            await new Promise(r => setTimeout(r, 900));
-            removeTyping();
-            callAPI(text, 'Positive');
-            return;
-        }
+        // Client side strong word overrides
+        let overrideSentiment = null;
+        if (hasStrongNegative(text)) overrideSentiment = 'Negative';
+        if (hasStrongPositive(text)) overrideSentiment = 'Positive';
 
-        // Call API
         try {
             const res  = await fetch(`${API_BASE}/predict`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text })
+                body: JSON.stringify({
+                    text,
+                    override_sentiment: overrideSentiment || null
+                })
             });
             const data = await res.json();
+
             await new Promise(r => setTimeout(r, 1200));
             removeTyping();
 
-            // Save ticket ID
-            if (data.ticket_id) {
-                currentTicketId = data.ticket_id;
+            // Save state
+            currentTicketId   = data.ticket_id;
+            originalReview    = text;
+            originalSentiment = overrideSentiment || data.sentiment;
+            currentStep       = data.current_step;
+            conversationState = 'chatting';
+
+            // Show ticket chip
+            if (currentTicketId) {
+                const chip = document.getElementById('ticketChip');
+                chip.textContent = currentTicketId;
+                chip.style.display = 'block';
+                connectWebSocket(currentTicketId);
+            }
+
+            // Handle direct escalation request
+            if (data.action === 'escalate_direct') {
+                currentTicketId   = data.ticket_id;
+                conversationState = 'escalated';
                 const chip = document.getElementById('ticketChip');
                 chip.textContent = data.ticket_id;
                 chip.style.display = 'block';
                 connectWebSocket(data.ticket_id);
-            }
-
-            if (data.action === 'cannot_score') {
-                conversationState = 'chatting';
-                addMessage("Thanks for reaching out! This chat is here to help with your product experience. Could you tell us how your purchase went?", 'bot');
-                setTimeout(() => showQuickReplies(["Something went wrong 😞", "It was just okay 😐", "I am happy with it 😊"]), 400);
-                lowConfidenceMode = true;
+                if (data.lang_messages && data.lang_messages.length) {
+                    data.lang_messages.forEach(msg => addMessage(msg.message, 'bot'));
+                }
+                showEscalatedBanner();
                 return;
             }
 
-            if (data.confidence < CONFIDENCE_THRESHOLD) {
-                showLowConfidenceQuestion();
-            } else {
-                startFlow(data.sentiment);
+            if (!data.ticket_id || data.action === 'cannot_score') {
+                addMessage("Thanks for reaching out! This chat helps with product and service feedback. Could you tell us about your purchase?", 'bot');
+                setTimeout(() => showQuickReplies(["Something went wrong 😞", "It was just okay 😐", "I am happy with it 😊"]), 400);
+                return;
             }
+
+            if (data.confidence < CONFIDENCE_THRESHOLD && !overrideSentiment) {
+                addMessage("Thanks for your message! Just so we can help you best, could you tell us how your experience went?", 'bot');
+                setTimeout(() => showQuickReplies(["Something went wrong 😞", "It was just okay 😐", "I am happy with it 😊"]), 400);
+                return;
+            }
+
+            // If strong word override — ignore LSTM sentiment and use override
+            const effectiveSentiment = overrideSentiment || data.sentiment;
+
+            // If override differs from LSTM — re-run conversation with correct sentiment
+            if (overrideSentiment && overrideSentiment !== data.sentiment) {
+                // Start correct flow locally based on override
+                const overrideMessages = {
+                    'Negative': "We are really sorry to hear that 😔 We want to make this right for you. Could you tell us a bit more about what went wrong?",
+                    'Positive': "That is wonderful to hear! 😊🎉 We are so glad you had a great experience! What did you enjoy most about your purchase?",
+                    'Neutral':  "Thank you for sharing your thoughts with us 😊 What do you think we could do better?"
+                };
+                originalSentiment = overrideSentiment;
+                currentStep = overrideSentiment === 'Negative' ? 'collect_order'
+                            : overrideSentiment === 'Neutral'  ? 'collect_feedback'
+                            : 'ask_review';
+                addMessage(overrideMessages[overrideSentiment], 'bot');
+                if (overrideSentiment === 'Negative') {
+                    setTimeout(() => showQuickReplies(["Product quality issue", "Shipping problem", "Wrong item received", "Something else"]), 600);
+                }
+                return;
+            }
+
+            // Process LangGraph messages normally
+            processLangMessages(
+                data.lang_messages || [],
+                data.current_step,
+                false,
+                false,
+                null
+            );
 
         } catch(e) {
             removeTyping();
-            addMessage("I am having a bit of trouble connecting right now. Please make sure the service is running and try again.", 'bot');
+            addMessage("I am having a bit of trouble connecting. Please make sure the service is running and try again.", 'bot');
             document.getElementById('reviewSection').style.display = 'flex';
             document.getElementById('chatSection').style.display   = 'none';
             document.getElementById('submitBtn').disabled  = false;
             document.getElementById('submitBtn').textContent = 'Send Feedback';
         }
-    }
-
-    async function callAPI(text, overrideSentiment) {
-        try {
-            const res  = await fetch(`${API_BASE}/predict`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text })
-            });
-            const data = await res.json();
-            if (data.ticket_id) {
-                currentTicketId = data.ticket_id;
-                const chip = document.getElementById('ticketChip');
-                chip.textContent = data.ticket_id;
-                chip.style.display = 'block';
-                connectWebSocket(data.ticket_id);
-            }
-        } catch(e) {}
-        startFlow(overrideSentiment);
-    }
-
-    // WebSocket — receive agent messages in real time
-    function connectWebSocket(ticketId) {
-        if (currentWs) currentWs.close();
-        const wsUrl = API_BASE.replace('http', 'ws');
-        currentWs = new WebSocket(`${wsUrl}/ws/${ticketId}`);
-        currentWs.onmessage = (event) => {
-            const msg = JSON.parse(event.data);
-            if (msg.sender === 'agent') {
-                addAgentMessage(msg.message);
-            }
-        };
-    }
-
-    function addAgentMessage(text) {
-        const chat = document.getElementById('chatArea');
-        const div  = document.createElement('div');
-        div.className = 'message bot';
-        div.innerHTML = `
-            <div class="msg-avatar" style="background:linear-gradient(135deg,#7C3AED,#9F67FA);">👩‍💼</div>
-            <div class="msg-content">
-                <div class="msg-bubble" style="border-left:3px solid #7C3AED;">${text}</div>
-                <div class="msg-time">Agent · ${getTime()}</div>
-            </div>
-        `;
-        chat.appendChild(div);
-        chat.scrollTop = chat.scrollHeight;
     }
 
     function sendMessage() {
@@ -791,7 +526,23 @@
         addMessage(text, 'customer');
         input.value = '';
         input.style.height = 'auto';
-        setTimeout(() => nextBotMessage(), 700);
+        continueConversation(text);
+    }
+
+    function connectWebSocket(ticketId) {
+        if (currentWs) currentWs.close();
+        const wsUrl = API_BASE.replace('http', 'ws');
+        currentWs = new WebSocket(`${wsUrl}/ws/${ticketId}`);
+        currentWs.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            if (msg.sender === 'agent') {
+                addMessage(msg.message, 'agent');
+            }
+            if (msg.type === 'escalation') {
+                showEscalatedBanner();
+                conversationState = 'escalated';
+            }
+        };
     }
 
     function handleKey(e) {
@@ -808,17 +559,14 @@
         document.getElementById('charCount').textContent = `${len} / 2000`;
     }
 
-    // Voice input
-    let recognition = null;
     function toggleVoice() {
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert('Voice input is not supported in this browser. Please use Chrome.');
+            alert('Voice input works in Chrome. Please use Chrome for this feature.');
             return;
         }
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!recognition) {
-            recognition = new SpeechRecognition();
-            recognition.continuous = false;
+            recognition = new SR();
             recognition.lang = 'en-US';
             recognition.onresult = (e) => {
                 const transcript = e.results[0][0].transcript;
@@ -827,29 +575,24 @@
                     : document.getElementById('chatInput');
                 activeInput.value = transcript;
                 if (conversationState === 'initial') updateCharCount();
-                document.getElementById('voiceBtn').classList.remove('recording');
-                if (document.getElementById('voiceBtn2')) document.getElementById('voiceBtn2').classList.remove('recording');
+                document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('recording'));
             };
             recognition.onerror = () => {
-                document.getElementById('voiceBtn').classList.remove('recording');
-            };
-            recognition.onend = () => {
-                document.getElementById('voiceBtn').classList.remove('recording');
+                document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('recording'));
             };
         }
-        document.getElementById('voiceBtn').classList.add('recording');
+        document.querySelectorAll('.voice-btn').forEach(b => b.classList.add('recording'));
         recognition.start();
     }
 
     function startOver() {
-        detectedSentiment  = '';
-        conversationStep   = 0;
-        conversationState  = 'initial';
-        lowConfidenceMode  = false;
-        currentTicketId    = null;
+        currentTicketId   = null;
+        currentStep       = null;
+        originalSentiment = null;
+        originalReview    = null;
+        conversationState = 'initial';
         if (currentWs) { currentWs.close(); currentWs = null; }
 
-        // Clear chat except date badge
         const chat = document.getElementById('chatArea');
         chat.innerHTML = `<div class="date-badge" id="dateBadge"></div>`;
         setDateBadge();
@@ -859,13 +602,11 @@
         document.getElementById('reviewInput').value = '';
         document.getElementById('submitBtn').disabled = false;
         document.getElementById('submitBtn').innerHTML = 'Send Feedback <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>';
+        document.getElementById('ticketChip').style.display = 'none';
 
-        const chip = document.getElementById('ticketChip');
-        chip.style.display = 'none';
-
-        const chatInput = document.getElementById('chatInput');
-        chatInput.disabled = false;
-        chatInput.placeholder = 'Type a message...';
+        const ci = document.getElementById('chatInput');
+        ci.disabled = false;
+        ci.placeholder = 'Type a message...';
         document.getElementById('sendBtn').disabled = false;
 
         setTimeout(() => addMessage("Hello again! 👋 Take your time and share your experience whenever you are ready.", 'bot'), 400);
@@ -874,12 +615,12 @@
     function setDateBadge() {
         const badge = document.getElementById('dateBadge');
         if (badge) {
-            const today = new Date();
-            badge.textContent = today.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+            badge.textContent = new Date().toLocaleDateString('en-US', {
+                weekday: 'long', month: 'long', day: 'numeric'
+            });
         }
     }
 
-    // Init
     window.onload = () => {
         setDateBadge();
         setTimeout(() => addMessage("Hello! Welcome to LensWord Customer Support 👋 We are here to help. Please share your experience with our product below.", 'bot'), 500);

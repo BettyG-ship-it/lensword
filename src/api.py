@@ -1,5 +1,5 @@
-# LensWord - FastAPI Sentiment Prediction API with RAG + Groq LLM
-# Uses Bidirectional LSTM for sentiment + RAG for context + Groq for personalized responses
+# LensWord - FastAPI Sentiment Prediction API
+# LSTM + RAG + Groq LLM + LangGraph + SQLite + WebSocket
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,10 +19,8 @@ from typing import Optional
 from datetime import datetime
 from groq import Groq
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Add project root to path
 sys.path.append(os.path.abspath('..'))
 from src.config import *
 from model import LensWordLSTM
@@ -30,14 +28,18 @@ from database import (init_db, save_prediction, save_message,
                       generate_ticket_id, get_all_tickets, get_ticket,
                       get_stats, update_status, save_satisfaction,
                       get_alerts, check_drift)
+from conversation import run_conversation, continue_conversation
 
-# Initialize Groq client
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 # ── Global state ─────────────────────────────────────────────
 app_state = {}
 
-# ── WebSocket connection manager ─────────────────────────────
+# ── Conversation step tracker ─────────────────────────────────
+# Keeps track of each ticket's current conversation step
+conversation_steps = {}
+
+# ── WebSocket manager ─────────────────────────────────────────
 class ConnectionManager:
     def __init__(self):
         self.active: dict = {}
@@ -64,19 +66,14 @@ manager = ConnectionManager()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── Startup ──────────────────────────────────────────────
     base_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # Initialize SQLite database
     init_db()
 
-    # Load vocabulary
     vocab_path = os.path.join(base_dir, '..', 'data', 'word2idx.pkl')
     with open(vocab_path, 'rb') as f:
         app_state['word2idx'] = pickle.load(f)
     print("Vocabulary loaded!")
 
-    # Load LSTM model
     model = LensWordLSTM(
         vocab_size=MAX_VOCAB_SIZE,
         embedding_dim=EMBEDDING_DIM,
@@ -95,14 +92,11 @@ async def lifespan(app: FastAPI):
     app_state['model'] = model
     print("LSTM model loaded!")
 
-    # Setup RAG
     kb_path = os.path.join(base_dir, 'knowledge_base.csv')
-    kb_df = pd.read_csv(kb_path)
-
+    kb_df   = pd.read_csv(kb_path)
     embedder = SentenceTransformer('all-MiniLM-L6-v2')
     app_state['embedder'] = embedder
 
-    # Force recreate ChromaDB collection
     chroma_client = chromadb.Client()
     try:
         chroma_client.delete_collection(name="lensword_kb")
@@ -120,27 +114,23 @@ async def lifespan(app: FastAPI):
         ids=ids,
         metadatas=[{"response": r} for r in responses]
     )
-
     app_state['collection'] = collection
     print(f"RAG knowledge base loaded with {len(documents)} entries!")
 
-    # Check Groq is working
-    groq_key = os.environ.get("GROQ_API_KEY")
-    if groq_key:
+    if os.environ.get("GROQ_API_KEY"):
         print("Groq LLM ready!")
     else:
-        print("Warning: GROQ_API_KEY not found — falling back to RAG templates")
+        print("Warning: GROQ_API_KEY not found")
 
     app_state['ready'] = True
     yield
 
-    # ── Shutdown ─────────────────────────────────────────────
     app_state.clear()
+    conversation_steps.clear()
     print("API shutdown complete.")
 
-# ── Create FastAPI app ───────────────────────────────────────
 app = FastAPI(
-    title="LensWord Sentiment Analysis API with RAG + LLM",
+    title="LensWord API — LSTM + RAG + Groq + LangGraph",
     lifespan=lifespan
 )
 
@@ -169,44 +159,136 @@ def pad_sequence(sequence: list, max_length: int) -> list:
         sequence = sequence[:max_length]
     return sequence
 
-# ── Out-of-domain detection ───────────────────────────────────
-def is_product_review(text: str) -> bool:
-    words = text.lower().split()
-    if len(words) < 4:
-        return False
-    review_indicators = [
-        'product', 'item', 'order', 'bought', 'purchased', 'shipping',
-        'delivery', 'quality', 'arrived', 'received', 'return', 'refund',
-        'broken', 'works', 'love', 'hate', 'great', 'awful', 'terrible',
-        'amazing', 'good', 'bad', 'excellent', 'poor', 'disappointed',
-        'satisfied', 'recommend', 'waste', 'money', 'price', 'worth',
-        'service', 'customer', 'seller', 'package', 'box', 'damaged',
-        'missing', 'wrong', 'perfect', 'happy', 'unhappy', 'experience',
-        'buy', 'buying', 'use', 'using', 'like', 'dislike', 'nice',
-        'cheap', 'expensive', 'fast', 'slow', 'easy', 'difficult',
-        'problem', 'issue', 'defective', 'stopped', 'working'
-    ]
-    for word in words:
-        if word in review_indicators:
-            return True
-    return False
+# ── Groq: Is this a product review? ─────────────────────────
+def is_product_review_groq(text: str) -> bool:
+    """Use Groq to detect if text is a product/service review"""
+    try:
+        completion = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            max_tokens=5,
+            temperature=0,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You decide if text is a product or service review. Reply only YES or NO."
+                },
+                {
+                    "role": "user",
+                    "content": f"Is this a product or service review?\n\n'{text}'"
+                }
+            ]
+        )
+        answer = completion.choices[0].message.content.strip().upper()
+        return "YES" in answer
+    except Exception:
+        # Fallback to vocabulary check if Groq fails
+        words = text.lower().split()
+        if len(words) < 4:
+            return False
+        review_indicators = [
+            'product', 'item', 'order', 'bought', 'purchased', 'shipping',
+            'delivery', 'quality', 'arrived', 'received', 'return', 'refund',
+            'broken', 'works', 'love', 'hate', 'great', 'awful', 'terrible',
+            'amazing', 'good', 'bad', 'excellent', 'poor', 'disappointed',
+            'satisfied', 'recommend', 'waste', 'money', 'price', 'worth',
+            'service', 'customer', 'seller', 'package', 'damaged', 'missing',
+            'wrong', 'perfect', 'happy', 'unhappy', 'experience', 'use',
+            'problem', 'issue', 'defective', 'stopped', 'working'
+        ]
+        return any(w in review_indicators for w in words)
 
-# ── RAG retrieval ────────────────────────────────────────────
+# ── Groq: Does customer want a human agent? ──────────────────
+def should_escalate_groq(text: str) -> bool:
+    """Use Groq to detect escalation intent — no fixed word list"""
+    # Must be at least 3 words to be an escalation request
+    if len(text.strip().split()) < 3:
+        return False
+
+    try:
+        completion = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            max_tokens=5,
+            temperature=0,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You detect ONLY if a customer explicitly wants to speak to "
+                        "a human agent or live support person. "
+                        "Do NOT flag complaints or negative reviews — only escalation requests. "
+                        "Reply only YES or NO."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Does this message explicitly request a human agent or live support person?\n\n'{text}'"
+                    )
+                }
+            ]
+        )
+        answer = completion.choices[0].message.content.strip().upper()
+        return "YES" in answer
+    except Exception:
+        # Fallback keywords if Groq fails
+        triggers = ['speak to a human', 'talk to a person', 'real person',
+                    'human agent', 'live agent', 'speak to someone',
+                    'talk to someone', 'supervisor', 'manager']
+        return any(t in text.lower() for t in triggers)
+
+# ── Groq: Has sentiment shifted mid-conversation? ────────────
+def detect_sentiment_shift(text: str, original_sentiment: str) -> Optional[str]:
+    """Detect if customer sentiment has shifted during conversation"""
+    try:
+        completion = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            max_tokens=10,
+            temperature=0,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You detect customer sentiment in one word. "
+                        "Reply only: NEGATIVE, NEUTRAL, or POSITIVE."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": f"What is the sentiment of this message?\n\n'{text}'"
+                }
+            ]
+        )
+        new_sentiment = completion.choices[0].message.content.strip().upper()
+        if "NEGATIVE" in new_sentiment:
+            new_sentiment = "Negative"
+        elif "NEUTRAL" in new_sentiment:
+            new_sentiment = "Neutral"
+        else:
+            new_sentiment = "Positive"
+
+        # Return new sentiment only if it shifted significantly
+        if new_sentiment != original_sentiment:
+            return new_sentiment
+        return None
+    except Exception:
+        return None
+
+# ── RAG context retrieval ────────────────────────────────────
 def get_rag_context(review_text: str, sentiment: str) -> str:
     fallback = {
-        'Negative': 'We are sorry to hear about your experience. A customer service representative will contact you within 24 hours.',
-        'Neutral':  'Thank you for your feedback. We would love to know how we can improve your experience further.',
-        'Positive': 'Thank you so much for your wonderful feedback! We are thrilled you are enjoying your purchase.'
+        'Negative': 'We are sorry to hear about your experience. A representative will contact you within 24 hours.',
+        'Neutral':  'Thank you for your feedback. We would love to know how we can improve.',
+        'Positive': 'Thank you for your wonderful feedback! We are thrilled you enjoyed your purchase.'
     }
 
     if sentiment == 'Positive':
         return fallback['Positive']
 
     try:
-        embedder   = app_state['embedder']
-        collection = app_state['collection']
+        embedder        = app_state['embedder']
+        collection      = app_state['collection']
         query_embedding = embedder.encode([review_text]).tolist()
-        results = collection.query(query_embeddings=query_embedding, n_results=1)
+        results         = collection.query(query_embeddings=query_embedding, n_results=1)
         if (results
                 and results.get('documents')
                 and len(results['documents']) > 0
@@ -222,14 +304,11 @@ def get_rag_context(review_text: str, sentiment: str) -> str:
 
     return fallback.get(sentiment, 'Thank you for your feedback.')
 
-# ── Groq LLM response generation ─────────────────────────────
+# ── Groq LLM response generation ────────────────────────────
 def generate_llm_response(review_text: str, sentiment: str, rag_context: str) -> str:
     try:
-        groq_key = os.environ.get("GROQ_API_KEY")
-        if not groq_key:
+        if not os.environ.get("GROQ_API_KEY"):
             return rag_context
-        
-        print(f"Calling Groq LLM for: {review_text[:50]}...")
 
         completion = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
@@ -239,100 +318,126 @@ def generate_llm_response(review_text: str, sentiment: str, rag_context: str) ->
                 {
                     "role": "system",
                     "content": (
-                        "You are a warm, empathetic customer service agent for an e-commerce company. "
-                        "Your job is to respond to customer reviews in a personal, caring way. "
-                        "Always use the provided policy as your guide. "
-                        "Never invent information not in the policy. "
-                        "Keep your response to 2-3 sentences maximum. "
-                        "Sound human and genuine, not robotic or corporate."
+                        "You are a warm empathetic customer service agent. "
+                        "Read the customer review carefully and respond appropriately. "
+                        "If the review describes a problem — apologize and offer help. "
+                        "If positive — respond with genuine appreciation. "
+                        "Use the provided policy as your guide. Never invent information. "
+                        "Keep response to 2-3 sentences. Sound human and genuine."
                     )
                 },
                 {
                     "role": "user",
                     "content": (
                         f"Customer review: {review_text}\n"
-                        f"Sentiment detected: {sentiment}\n"
-                        f"Relevant policy/context: {rag_context}\n\n"
-                        f"Write a personalized, empathetic response to this customer. "
-                        f"Use the policy above as your guide but make it feel personal to their specific situation."
+                        f"Policy/context: {rag_context}\n\n"
+                        f"Write a personalized empathetic response."
                     )
                 }
             ]
         )
         return completion.choices[0].message.content.strip()
-
     except Exception as e:
-        print(f"Groq LLM error: {e} — falling back to RAG template")
-        return rag_context  # Fallback to RAG if LLM fails
+        print(f"Groq LLM error: {e}")
+        return rag_context
 
 # ── Request models ───────────────────────────────────────────
 class ReviewRequest(BaseModel):
-    text: str = Field(..., min_length=1, max_length=2000)
-    session_id: Optional[str] = None
+    text:               str = Field(..., min_length=1, max_length=2000)
+    session_id:         Optional[str] = None
+    override_sentiment: Optional[str] = None
+
+class ChatRequest(BaseModel):
+    ticket_id:          str
+    message:            str
+    current_step:       str
+    review_text:        str
+    original_sentiment: str
+
+class EscalateRequest(BaseModel):
+    ticket_id: str
+    message:   str
 
 class MessageRequest(BaseModel):
     ticket_id: str
-    sender: str
-    message: str
+    sender:    str
+    message:   str
 
 class StatusRequest(BaseModel):
     ticket_id: str
-    status: str
+    status:    str
 
 class SatisfactionRequest(BaseModel):
     ticket_id: str
-    rating: int = Field(..., ge=1, le=5)
+    rating:    int = Field(..., ge=1, le=5)
 
 # ── Health check ─────────────────────────────────────────────
 @app.get("/")
 def home():
     return {
-        "message": "LensWord API with RAG + Groq LLM is running!",
-        "model":   "Bidirectional LSTM + RAG + Groq LLM",
-        "classes": ["Negative", "Neutral", "Positive"],
-        "llm":     "Groq llama3-8b-8192" if os.environ.get("GROQ_API_KEY") else "RAG fallback",
-        "status":  "ready" if app_state.get('ready') else "initializing"
+        "message": "LensWord API — LSTM + RAG + Groq + LangGraph",
+        "status":  "ready" if app_state.get('ready') else "initializing",
+        "llm":     "Groq llama-3.1-8b-instant" if os.environ.get("GROQ_API_KEY") else "RAG fallback"
     }
 
-# ── Prediction endpoint ──────────────────────────────────────
+# ── Main prediction endpoint ─────────────────────────────────
 @app.post("/predict")
 def predict_sentiment(request: ReviewRequest):
     word2idx = app_state['word2idx']
     model    = app_state['model']
 
-    # Empty input guard
     cleaned = clean_text(request.text)
     if not cleaned.strip():
         return {
-            "text":       request.text,
-            "sentiment":  None,
-            "confidence": 0.0,
+            "text": request.text, "sentiment": None, "confidence": 0.0,
             "probabilities": {"Negative": 0.0, "Neutral": 0.0, "Positive": 0.0},
-            "action":    "cannot_score",
-            "priority":  "UNKNOWN",
-            "suggested_response": "Thank you for reaching out! This chat is designed to help with product and service feedback.",
-            "ticket_id": None
+            "action": "cannot_score", "priority": "UNKNOWN", "ticket_id": None,
+            "suggested_response": "Thank you for reaching out! This chat helps with product and service feedback."
         }
 
-    # Out-of-domain guard
-    if not is_product_review(cleaned):
+    # Check escalation FIRST — before out-of-domain check
+    if should_escalate_groq(cleaned):
+        ticket_id = generate_ticket_id()
+        save_prediction(
+            ticket_id=ticket_id,
+            review_text=request.text,
+            sentiment='Negative',
+            confidence=100.0,
+            priority='HIGH',
+            action='escalate',
+            suggested_response='Customer requested human agent directly.',
+            session_id=request.session_id
+        )
+        save_message(ticket_id, 'customer', request.text)
+        update_status(ticket_id, 'escalated')
         return {
-            "text":       request.text,
-            "sentiment":  None,
-            "confidence": 0.0,
-            "probabilities": {"Negative": 0.0, "Neutral": 0.0, "Positive": 0.0},
-            "action":    "cannot_score",
-            "priority":  "UNKNOWN",
-            "suggested_response": "Thank you for reaching out! This chat is designed to help with product and service feedback.",
-            "ticket_id": None
+            "text": request.text, "sentiment": "Negative", "confidence": 100.0,
+            "probabilities": {"Negative": 100.0, "Neutral": 0.0, "Positive": 0.0},
+            "action": "escalate_direct", "priority": "HIGH",
+            "ticket_id": ticket_id,
+            "lang_messages": [{
+                "sender": "bot",
+                "message": "I completely understand. Let me connect you with one of our senior support agents right away. They will have full context of our conversation and will be with you very shortly.",
+                "timestamp": ""
+            }],
+            "current_step": "escalated",
+            "suggested_response": "Customer requested human agent directly."
         }
 
-    # Preprocess
+    # Groq detects if it is a product review
+    if not is_product_review_groq(cleaned):
+        return {
+            "text": request.text, "sentiment": None, "confidence": 0.0,
+            "probabilities": {"Negative": 0.0, "Neutral": 0.0, "Positive": 0.0},
+            "action": "cannot_score", "priority": "UNKNOWN", "ticket_id": None,
+            "suggested_response": "Thank you for reaching out! This chat helps with product and service feedback."
+        }
+
+    # LSTM prediction
     sequence     = text_to_sequence(cleaned, word2idx)
     padded       = pad_sequence(sequence, MAX_SEQ_LENGTH)
     input_tensor = torch.tensor([padded], dtype=torch.long)
 
-    # LSTM prediction
     with torch.no_grad():
         output = model(input_tensor)
         probs  = torch.softmax(output, dim=1)
@@ -342,53 +447,154 @@ def predict_sentiment(request: ReviewRequest):
     labels    = ['Negative', 'Neutral', 'Positive']
     sentiment = labels[predicted_class]
 
-    # Step 1 — RAG retrieves relevant context
-    rag_context = get_rag_context(request.text, sentiment)
-
-    # Step 2 — Groq LLM personalizes the response using RAG context
-    suggested_response = generate_llm_response(request.text, sentiment, rag_context)
-
-    # Action and priority
     actions = {
         'Positive': {'action': 'none',      'priority': 'LOW'},
         'Neutral':  {'action': 'follow_up', 'priority': 'MEDIUM'},
         'Negative': {'action': 'escalate',  'priority': 'HIGH'}
     }
 
-    # Generate ticket and save to SQLite
+    # Compute final sentiment BEFORE RAG so everything uses the correct sentiment
+    final_sentiment = request.override_sentiment if request.override_sentiment else sentiment
+    final_priority  = actions[final_sentiment]['priority']
+    final_action    = actions[final_sentiment]['action']
+
+    # RAG + Groq LLM response — uses final_sentiment so override is respected
+    rag_context        = get_rag_context(request.text, final_sentiment)
+    suggested_response = generate_llm_response(request.text, final_sentiment, rag_context)
+
     ticket_id = generate_ticket_id()
     save_prediction(
         ticket_id=ticket_id,
         review_text=request.text,
-        sentiment=sentiment,
+        sentiment=final_sentiment,
         confidence=round(confidence * 100, 2),
-        priority=actions[sentiment]['priority'],
-        action=actions[sentiment]['action'],
+        priority=final_priority,
+        action=final_action,
         suggested_response=suggested_response,
         session_id=request.session_id
     )
     save_message(ticket_id, 'customer', request.text)
 
-    # Check for drift
+    # Start LangGraph conversation using final sentiment
+    lang_result = run_conversation(
+        ticket_id=ticket_id,
+        review_text=request.text,
+        sentiment=final_sentiment,
+        confidence=round(confidence * 100, 2)
+    )
+
+    # Store current step
+    conversation_steps[ticket_id] = {
+        "step":      lang_result["step"],
+        "sentiment": final_sentiment,
+        "review":    request.text
+    }
+
     try:
         check_drift()
     except Exception:
         pass
 
+    # Clean up old steps — keep only last 1000 tickets in memory
+    if len(conversation_steps) > 1000:
+        oldest_keys = list(conversation_steps.keys())[:100]
+        for k in oldest_keys:
+            conversation_steps.pop(k, None)
+
     return {
-        "text":       request.text,
-        "sentiment":  sentiment,
-        "confidence": round(confidence * 100, 2),
+        "text":               request.text,
+        "sentiment":          final_sentiment,
+        "confidence":         round(confidence * 100, 2),
         "probabilities": {
             "Negative": round(probs[0][0].item() * 100, 2),
             "Neutral":  round(probs[0][1].item() * 100, 2),
             "Positive": round(probs[0][2].item() * 100, 2)
         },
-        "action":             actions[sentiment]['action'],
-        "priority":           actions[sentiment]['priority'],
+        "action":             final_action,
+        "priority":           final_priority,
         "suggested_response": suggested_response,
-        "ticket_id":          ticket_id
+        "ticket_id":          ticket_id,
+        "lang_messages":      lang_result["messages"],
+        "current_step":       lang_result["step"]
     }
+
+# ── Chat continue endpoint ───────────────────────────────────
+@app.post("/chat/continue")
+async def chat_continue(request: ChatRequest):
+    """Continue LangGraph conversation — called when customer replies"""
+
+    # Check if customer wants to escalate using Groq
+    wants_human = should_escalate_groq(request.message)
+    if wants_human:
+        update_status(request.ticket_id, 'escalated')
+        save_message(request.ticket_id, 'customer', request.message)
+        await manager.broadcast(request.ticket_id, {
+            "type":      "escalation",
+            "ticket_id": request.ticket_id,
+            "message":   "Customer requested a human agent"
+        })
+        return {
+            "messages": [{
+                "sender":  "bot",
+                "message": "I completely understand. Let me connect you with one of our senior support agents right away. They will be with you very shortly and will have full context of our conversation.",
+                "timestamp": datetime.now().isoformat()
+            }],
+            "step":        "escalated",
+            "needs_agent": True,
+            "resolved":    False,
+            "escalated":   True
+        }
+
+    # Check for sentiment shift
+    new_sentiment = detect_sentiment_shift(request.message, request.original_sentiment)
+
+    # Save customer message
+    save_message(request.ticket_id, 'customer', request.message)
+
+    # Continue LangGraph conversation
+    result = continue_conversation(
+        ticket_id=request.ticket_id,
+        review_text=request.review_text,
+        sentiment=new_sentiment or request.original_sentiment,
+        current_step=request.current_step,
+        customer_message=request.message
+    )
+
+    # Save bot messages
+    for msg in result["messages"]:
+        save_message(request.ticket_id, 'bot', msg["message"])
+
+    # Update step tracker
+    conversation_steps[request.ticket_id] = {
+        "step":      result["step"],
+        "sentiment": new_sentiment or request.original_sentiment,
+        "review":    request.review_text
+    }
+
+    # Update ticket status if resolved
+    if result["resolved"]:
+        update_status(request.ticket_id, 'resolved')
+
+    return {
+        "messages":      result["messages"],
+        "step":          result["step"],
+        "needs_agent":   result["needs_agent"],
+        "resolved":      result["resolved"],
+        "escalated":     False,
+        "sentiment_shift": new_sentiment
+    }
+
+# ── Escalate endpoint ────────────────────────────────────────
+@app.post("/chat/escalate")
+async def escalate_chat(request: EscalateRequest):
+    update_status(request.ticket_id, 'escalated')
+    save_message(request.ticket_id, 'customer', request.message)
+    await manager.broadcast(request.ticket_id, {
+        "type":      "escalation",
+        "ticket_id": request.ticket_id,
+        "message":   "Customer requested a human agent"
+    })
+    return {"status": "escalated", "ticket_id": request.ticket_id}
 
 # ── Message endpoint ─────────────────────────────────────────
 @app.post("/message")
@@ -405,18 +611,23 @@ async def save_chat_message(request: MessageRequest):
 @app.post("/satisfaction")
 def rate_satisfaction(request: SatisfactionRequest):
     save_satisfaction(request.ticket_id, request.rating)
-    return {"status": "saved", "ticket_id": request.ticket_id, "rating": request.rating}
+    return {"status": "saved", "rating": request.rating}
 
-# ── Status update endpoint ───────────────────────────────────
+# ── Status endpoint ──────────────────────────────────────────
 @app.post("/ticket/status")
 def update_ticket_status(request: StatusRequest):
     update_status(request.ticket_id, request.status)
-    return {"status": "updated", "ticket_id": request.ticket_id}
+    return {"status": "updated"}
 
 # ── Admin endpoints ──────────────────────────────────────────
 @app.get("/admin/stats")
 def admin_stats():
-    return get_stats()
+    stats = get_stats()
+    # Remove None keys that break the dashboard
+    stats["total_counts"] = {k: v for k, v in stats["total_counts"].items() if k is not None}
+    stats["today_counts"] = {k: v for k, v in stats["today_counts"].items() if k is not None}
+    stats["priority_counts"] = {k: v for k, v in stats["priority_counts"].items() if k is not None}
+    return stats
 
 @app.get("/admin/tickets")
 def admin_tickets(

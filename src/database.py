@@ -60,7 +60,10 @@ def generate_ticket_id():
     c.execute("SELECT COUNT(*) FROM predictions")
     count = c.fetchone()[0] + 1
     conn.close()
-    return f"LW-{datetime.now().year}-{count:04d}"
+    # Add microseconds to prevent race condition duplicates
+    import time
+    unique = str(int(time.time() * 1000))[-4:]
+    return f"LW-{datetime.now().year}-{count:04d}-{unique}"
 
 def save_prediction(ticket_id, review_text, sentiment,
                     confidence, priority, action,
