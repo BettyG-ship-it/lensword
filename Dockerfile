@@ -1,32 +1,40 @@
-# LensWord - Dockerfile
-# Base image with Python 3.11
+# LensWord Dockerfile
+# Runs the FastAPI sentiment analysis API with RAG + Groq LLM + SQLite
+
 FROM python:3.11-slim
 
-# Set working directory inside the container
+# Install system dependencies needed for LIME and other packages
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Copy requirements file first (for faster rebuilds)
+# Copy requirements first for faster rebuilds
 COPY requirements.txt .
 
 # Install all Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire project into the container
+# Copy the entire project
 COPY . .
 
-# Move into the src folder where api.py lives
-WORKDIR /app/src
-
-# Expose port 8000 for the API
-EXPOSE 8000
-
-# F11 fix: run as non-root user for security
+# Create the src directory with correct permissions
+# SQLite database will be created here at runtime
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+
 USER appuser
 
-# F11 fix: HEALTHCHECK against the health endpoint
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+WORKDIR /app/src
+
+EXPOSE 8000
+
+# Pass GROQ_API_KEY at runtime using:
+# docker run -e GROQ_API_KEY=your-key-here -p 8000:8000 lensword
+# Never hardcode secrets in the Dockerfile
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/')" || exit 1
 
-# Command to run when the container starts
 CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
