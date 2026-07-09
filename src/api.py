@@ -18,6 +18,7 @@ from sentence_transformers import SentenceTransformer
 from typing import Optional
 from datetime import datetime
 from groq import Groq
+from lime.lime_text import LimeTextExplainer
 
 load_dotenv()
 
@@ -370,6 +371,110 @@ class StatusRequest(BaseModel):
 class SatisfactionRequest(BaseModel):
     ticket_id: str
     rating:    int = Field(..., ge=1, le=5)
+
+# ── LIME Explainability ─────────────────────────────────────
+def get_explanation(text: str, num_features: int = 6) -> list:
+    """Use LIME to find which words drove the prediction"""
+    try:
+        word2idx = app_state['word2idx']
+        model    = app_state['model']
+
+        # First get the predicted class
+        cleaned  = clean_text(text)
+        sequence = text_to_sequence(cleaned, word2idx)
+        padded   = pad_sequence(sequence, MAX_SEQ_LENGTH)
+        tensor   = torch.tensor([padded], dtype=torch.long)
+        with torch.no_grad():
+            output = model(tensor)
+            probs  = torch.softmax(output, dim=1)
+            predicted_class = output.argmax(dim=1).item()
+
+        def predict_proba(texts):
+            results = []
+            for t in texts:
+                try:
+                    c  = clean_text(t)
+                    sq = text_to_sequence(c, word2idx)
+                    pd = pad_sequence(sq, MAX_SEQ_LENGTH)
+                    tn = torch.tensor([pd], dtype=torch.long)
+                    with torch.no_grad():
+                        out   = model(tn)
+                        probs = torch.softmax(out, dim=1)
+                    results.append(probs[0].detach().numpy())
+                except Exception:
+                    results.append([0.33, 0.33, 0.34])
+            import numpy as np
+            return np.array(results)
+
+        explainer   = LimeTextExplainer(
+            class_names=['Negative', 'Neutral', 'Positive'],
+            bow=True
+        )
+        explanation = explainer.explain_instance(
+            text,
+            predict_proba,
+            num_features=num_features,
+            num_samples=200,
+            labels=[predicted_class]
+        )
+
+        # Get word importances for predicted class
+        word_importances = explanation.as_list(label=predicted_class)
+
+        if not word_importances:
+            print("LIME returned no word importances")
+            return []
+
+        # Stop words to filter out — not meaningful for sentiment
+        stop_words = {
+            'the','a','an','this','that','is','was','are','were',
+            'it','its','i','my','me','we','our','you','your',
+            'to','of','in','on','at','for','with','and','or',
+            'but','not','so','as','by','be','do','did','has',
+            'had','have','will','would','could','should','may',
+            'might','shall','after','before','two','one','three',
+            'days','day','week','weeks','month','months','year','years',
+            'just','very','really','quite','also','even','still','already'
+        }
+
+        labels_map = ['Negative', 'Neutral', 'Positive']
+        predicted_label = labels_map[predicted_class]
+
+        # Format for frontend
+        result = []
+        for word, importance in word_importances:
+            # Skip stop words and near-zero importances
+            if word.lower() in stop_words or word.isdigit():
+                continue
+            if abs(importance) < 0.005:
+                continue
+            result.append({
+                "word":       word,
+                "importance": round(abs(importance) * 100, 1),
+                "drives":     predicted_label,
+                "direction":  "toward" if importance > 0 else "against"
+            })
+
+        result.sort(key=lambda x: x["importance"], reverse=True)
+        return result[:6]
+
+    except Exception as e:
+        print(f"LIME explanation error: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
+
+class ExplainRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=2000)
+
+@app.post("/explain")
+def explain_prediction(request: ExplainRequest):
+    """Return word importance scores for a prediction"""
+    explanation = get_explanation(request.text)
+    return {
+        "text":        request.text,
+        "explanation": explanation
+    }
 
 # ── Health check ─────────────────────────────────────────────
 @app.get("/")

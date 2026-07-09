@@ -103,6 +103,16 @@
         .sentiment-badge.neutral  .sentiment-label { color: #ffc107; }
         .confidence-text { color: rgba(255,255,255,0.6); font-size: 0.9rem; }
 
+        /* Explainable AI */
+        .explain-section { margin-top: 20px; background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.1); }
+        .explain-title { font-size: 0.8rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; font-weight: 600; }
+        .word-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .word-chip { padding: 5px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .word-chip.drives-negative { background: rgba(255,99,99,0.2); border: 1px solid rgba(255,99,99,0.5); color: #FF6363; }
+        .word-chip.drives-positive { background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.5); color: #10B981; }
+        .word-chip .chip-pct { font-size: 0.72rem; opacity: 0.8; }
+        .explain-loading { color: rgba(255,255,255,0.4); font-size: 0.85rem; font-style: italic; }
+
         .probabilities {
             background: rgba(255,255,255,0.05);
             border-radius: 12px;
@@ -259,6 +269,14 @@
                 </div>
             </div>
 
+            <!-- Explainable AI section -->
+            <div class="explain-section" id="explainSection" style="display:none">
+                <div class="explain-title">Words that drove this prediction</div>
+                <div class="word-chips" id="wordChips">
+                    <span class="explain-loading">Analyzing...</span>
+                </div>
+            </div>
+
             <!-- F1 fix: renders actual API fields — suggested_response, action, priority -->
             <div class="action-section">
                 <h3>Recommended Action</h3>
@@ -343,7 +361,7 @@
                             ? 'We are sorry to hear about your experience. A customer service representative will contact you within 24 hours.'
                             : 'Thank you so much for your wonderful feedback! We are thrilled you are enjoying your purchase.'
                     };
-                    displayResults(fakeData);
+                    displayResults(fakeData, review);
                     return;
                 }
 
@@ -371,7 +389,7 @@
                     return;
                 }
 
-                displayResults(data);
+                displayResults(data, review);
 
             } catch (error) {
                 // F12 fix: connection failure shown separately from server errors
@@ -386,7 +404,7 @@
             }
         }
 
-        function displayResults(data) {
+        function displayResults(data, reviewText) {
             // ── F1 fix: render actual API fields ──────────────────────
             // Previously this function used hardcoded local mappings
             // Now it renders suggested_response, action, priority from the API
@@ -424,6 +442,40 @@
 
             // Show results
             document.getElementById('resultSection').style.display = 'block';
+
+            // Fetch explainability
+            fetchExplanation(reviewText);
+        }
+        async function fetchExplanation(text) {
+            const section = document.getElementById('explainSection');
+            const chips   = document.getElementById('wordChips');
+            section.style.display = 'block';
+            chips.innerHTML = '<span class="explain-loading">Analyzing which words drove this prediction...</span>';
+
+            try {
+                const res  = await fetch(`${API_BASE}/explain`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const data = await res.json();
+
+                if (!data.explanation || data.explanation.length === 0) {
+                    chips.innerHTML = '<span class="explain-loading">No explanation available</span>';
+                    return;
+                }
+
+                chips.innerHTML = data.explanation.map(item => `
+                    <div class="word-chip ${item.direction === 'toward' ? 'drives-negative' : 'drives-positive'}"
+                         title="This word drives the prediction ${item.direction} ${item.drives}">
+                        ${item.word}
+                        <span class="chip-pct">${item.importance}%</span>
+                    </div>
+                `).join('');
+
+            } catch(e) {
+                chips.innerHTML = '<span class="explain-loading">Could not load explanation</span>';
+            }
         }
     </script>
 </body>
