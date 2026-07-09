@@ -1,0 +1,22 @@
+{
+  "bilstm": {
+    "model": "LensWord BiLSTM",
+    "training": "In-domain (seed 42)",
+    "accuracy": 72.62,
+    "macro_f1": 0.7263,
+    "neg_f1": 0.7467,
+    "neu_f1": 0.6396,
+    "pos_f1": 0.7925,
+    "params": 444035
+  },
+  "distilbert": {
+    "model": "LensWord DistilBERT",
+    "training": "In-domain fine-tuned",
+    "accuracy": 80.29,
+    "macro_f1": 0.8082,
+    "neg_f1": 0.8126,
+    "neu_f1": 0.749,
+    "pos_f1": 0.863,
+    "params": 66000000
+  }
+}
