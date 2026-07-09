@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LensWord Admin Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0F172A; color: #E2E8F0; min-height: 100vh; }
+
+        .header { background: linear-gradient(135deg, #065A82, #1C7293); padding: 16px 30px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 20px rgba(0,0,0,0.3); }
+        .header h1 { font-size: 1.4rem; font-weight: 700; color: white; }
+        .header p { font-size: 0.8rem; color: rgba(255,255,255,0.6); }
+        .header-right { display: flex; gap: 10px; align-items: center; }
+        .live-badge { background: #10B981; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+        .refresh-btn { background: rgba(255,255,255,0.15); border: none; color: white; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; transition: background 0.2s; font-family: inherit; }
+        .refresh-btn:hover { background: rgba(255,255,255,0.25); }
+
+        .main { padding: 24px 30px; max-width: 1400px; margin: 0 auto; }
+
+        .alert-bar { background: rgba(255,99,99,0.15); border: 1px solid rgba(255,99,99,0.4); border-radius: 10px; padding: 10px 16px; margin-bottom: 20px; display: none; align-items: center; gap: 10px; }
+        .alert-bar.show { display: flex; }
+        .alert-text { font-size: 0.9rem; color: #FF6363; }
+
+        .sentiment-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+        .sentiment-card { background: #1E293B; border-radius: 14px; padding: 20px; border: 1px solid rgba(255,255,255,0.07); position: relative; overflow: hidden; }
+        .sentiment-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+        .sentiment-card.negative::before { background: #FF6363; }
+        .sentiment-card.neutral::before  { background: #FFC107; }
+        .sentiment-card.positive::before { background: #10B981; }
+        .card-emoji { font-size: 2rem; margin-bottom: 8px; }
+        .card-label { font-size: 0.8rem; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; }
+        .card-count { font-size: 2.2rem; font-weight: 700; margin: 4px 0; }
+        .sentiment-card.negative .card-count { color: #FF6363; }
+        .sentiment-card.neutral .card-count  { color: #FFC107; }
+        .sentiment-card.positive .card-count { color: #10B981; }
+        .card-today { font-size: 0.8rem; color: #64748B; }
+
+        .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-box { background: #1E293B; border-radius: 12px; padding: 16px 20px; border: 1px solid rgba(255,255,255,0.07); text-align: center; }
+        .stat-box .stat-value { font-size: 1.8rem; font-weight: 700; color: #38BDF8; }
+        .stat-box .stat-label { font-size: 0.8rem; color: #94A3B8; margin-top: 4px; }
+
+        .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+        .chart-box { background: #1E293B; border-radius: 14px; padding: 20px; border: 1px solid rgba(255,255,255,0.07); }
+        .chart-title { font-size: 0.9rem; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+        .chart-wrap { position: relative; height: 220px; }
+
+        .ticket-section { background: #1E293B; border-radius: 14px; padding: 20px; border: 1px solid rgba(255,255,255,0.07); }
+        .section-title { font-size: 1.1rem; font-weight: 700; color: #E2E8F0; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+        .count-badge { background: #065A82; color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+
+        .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .tab-btn { background: #0F172A; border: 1px solid rgba(255,255,255,0.1); color: #94A3B8; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 0.82rem; transition: all 0.2s; font-family: inherit; }
+        .tab-btn:hover { background: #2D3748; color: white; }
+        .tab-btn.active { background: #065A82; color: white; border-color: #065A82; }
+
+        .ticket-table { width: 100%; border-collapse: collapse; }
+        .ticket-table th { text-align: left; font-size: 0.75rem; color: #64748B; text-transform: uppercase; letter-spacing: 1px; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+        .ticket-table td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.88rem; vertical-align: middle; }
+        .ticket-table tr:hover td { background: rgba(255,255,255,0.03); cursor: pointer; }
+
+        .priority-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; }
+        .priority-badge.HIGH   { background: rgba(255,99,99,0.2);  color: #FF6363; }
+        .priority-badge.MEDIUM { background: rgba(255,193,7,0.2);  color: #FFC107; }
+        .priority-badge.LOW    { background: rgba(16,185,129,0.2); color: #10B981; }
+
+        .sentiment-tag { font-size: 0.8rem; font-weight: 600; }
+        .sentiment-tag.Negative { color: #FF6363; }
+        .sentiment-tag.Neutral  { color: #FFC107; }
+        .sentiment-tag.Positive { color: #10B981; }
+
+        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+        .status-dot.open      { background: #FFC107; }
+        .status-dot.resolved  { background: #10B981; }
+        .status-dot.escalated { background: #FF6363; }
+
+        .preview-text { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #94A3B8; }
+
+        /* PAGINATION */
+        .pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.07); }
+        .page-btn { background: #0F172A; border: 1px solid rgba(255,255,255,0.1); color: #94A3B8; padding: 7px 18px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-family: inherit; transition: all 0.2s; }
+        .page-btn:hover:not(:disabled) { background: #065A82; color: white; border-color: #065A82; }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .page-info { font-size: 0.85rem; color: #64748B; min-width: 100px; text-align: center; }
+
+        /* MODAL */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: #1E293B; border-radius: 16px; width: 100%; max-width: 680px; max-height: 85vh; display: flex; flex-direction: column; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 60px rgba(0,0,0,0.5); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; align-items: flex-start; justify-content: space-between; }
+        .modal-header h3 { font-size: 1rem; font-weight: 700; color: white; }
+        .modal-badges { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+        .close-btn { background: none; border: none; color: #64748B; font-size: 1.4rem; cursor: pointer; line-height: 1; }
+        .close-btn:hover { color: white; }
+
+        .modal-info { padding: 12px 24px; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; gap: 20px; flex-wrap: wrap; }
+        .info-item { font-size: 0.8rem; color: #64748B; }
+        .info-item span { color: #E2E8F0; font-weight: 600; }
+
+        .chat-area { flex: 1; overflow-y: auto; padding: 16px 24px; display: flex; flex-direction: column; gap: 10px; min-height: 200px; max-height: 280px; }
+        .chat-msg { display: flex; gap: 8px; max-width: 85%; }
+        .chat-msg.customer { align-self: flex-start; }
+        .chat-msg.agent    { align-self: flex-end; flex-direction: row-reverse; }
+        .chat-msg.bot      { align-self: flex-start; }
+        .msg-bubble { padding: 10px 14px; border-radius: 14px; font-size: 0.88rem; line-height: 1.5; }
+        .chat-msg.customer .msg-bubble { background: #0F172A; color: #E2E8F0; border-bottom-left-radius: 4px; }
+        .chat-msg.agent .msg-bubble    { background: #065A82; color: white; border-bottom-right-radius: 4px; }
+        .chat-msg.bot .msg-bubble      { background: #1C3A4A; color: #94A3B8; border-bottom-left-radius: 4px; font-style: italic; }
+        .msg-sender { font-size: 0.7rem; color: #64748B; margin-bottom: 3px; padding: 0 4px; }
+        .chat-msg.agent .msg-sender { text-align: right; }
+
+        .modal-footer { padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.07); }
+        .suggested-box { background: rgba(6,90,130,0.2); border: 1px solid rgba(6,90,130,0.4); border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; font-size: 0.82rem; color: #94A3B8; }
+        .suggested-label { font-size: 0.72rem; color: #38BDF8; font-weight: 600; margin-bottom: 4px; }
+        .chat-input-row { display: flex; gap: 8px; }
+        .chat-input { flex: 1; background: #0F172A; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 14px; color: white; font-size: 0.88rem; font-family: inherit; outline: none; resize: none; min-height: 42px; max-height: 100px; }
+        .chat-input:focus { border-color: #065A82; }
+        .chat-input::placeholder { color: #475569; }
+        .send-btn { background: linear-gradient(135deg, #065A82, #1C7293); border: none; border-radius: 10px; color: white; padding: 0 18px; cursor: pointer; font-size: 0.88rem; font-weight: 600; font-family: inherit; }
+        .action-row { display: flex; gap: 8px; margin-top: 10px; }
+        .action-btn { flex: 1; padding: 8px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; font-family: inherit; }
+        .btn-resolve  { background: #10B981; color: white; }
+        .btn-escalate { background: #FF6363; color: white; }
+        .btn-suggest  { background: rgba(56,189,248,0.15); color: #38BDF8; border: 1px solid rgba(56,189,248,0.3); }
+
+        .empty-state { text-align: center; padding: 40px; color: #475569; font-size: 0.9rem; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div>
+        <h1>LensWord Admin</h1>
+        <p>Customer Support Dashboard</p>
+    </div>
+    <div class="header-right">
+        <span class="live-badge">LIVE</span>
+        <button class="refresh-btn" onclick="loadAll()">Refresh</button>
+    </div>
+</div>
+
+<div class="main">
+
+    <div class="alert-bar" id="alertBar">
+        <span>⚠️</span>
+        <span class="alert-text" id="alertText"></span>
+    </div>
+
+    <div class="sentiment-cards">
+        <div class="sentiment-card negative">
+            <div class="card-emoji">😞</div>
+            <div class="card-label">Negative</div>
+            <div class="card-count" id="negCount">0</div>
+            <div class="card-today" id="negToday">Today: 0</div>
+        </div>
+        <div class="sentiment-card neutral">
+            <div class="card-emoji">😐</div>
+            <div class="card-label">Neutral</div>
+            <div class="card-count" id="neuCount">0</div>
+            <div class="card-today" id="neuToday">Today: 0</div>
+        </div>
+        <div class="sentiment-card positive">
+            <div class="card-emoji">😊</div>
+            <div class="card-label">Positive</div>
+            <div class="card-count" id="posCount">0</div>
+            <div class="card-today" id="posToday">Today: 0</div>
+        </div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-box">
+            <div class="stat-value" id="openCount">0</div>
+            <div class="stat-label">Open Tickets</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="totalCount">0</div>
+            <div class="stat-label">Total Reviews</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="avgSat">N/A</div>
+            <div class="stat-label">Avg Satisfaction</div>
+        </div>
+    </div>
+
+    <div class="charts-row">
+        <div class="chart-box">
+            <div class="chart-title">Sentiment Trend (Last 7 Days)</div>
+            <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+        </div>
+        <div class="chart-box">
+            <div class="chart-title">Sentiment Distribution</div>
+            <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="ticket-section">
+        <div class="section-title">
+            Customer Support Queue
+            <span class="count-badge" id="queueCount">0</span>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="setFilter('all', null, this)">All</button>
+            <button class="tab-btn" onclick="setFilter('Negative', null, this)">😞 Negative</button>
+            <button class="tab-btn" onclick="setFilter('Neutral', null, this)">😐 Neutral</button>
+            <button class="tab-btn" onclick="setFilter('Positive', null, this)">😊 Positive</button>
+            <button class="tab-btn" onclick="setFilter(null, 'open', this)">Open</button>
+            <button class="tab-btn" onclick="setFilter(null, 'resolved', this)">Resolved</button>
+            <button class="tab-btn" onclick="setFilter(null, 'escalated', this)">Escalated</button>
+        </div>
+
+        <table class="ticket-table">
+            <thead>
+                <tr>
+                    <th>Ticket</th>
+                    <th>Sentiment</th>
+                    <th>Priority</th>
+                    <th>Review</th>
+                    <th>Status</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody id="ticketBody">
+                <tr><td colspan="6" class="empty-state">Loading tickets...</td></tr>
+            </tbody>
+        </table>
+
+        <div class="pagination">
+            <button class="page-btn" id="prevBtn" onclick="prevPage()" disabled>Previous</button>
+            <span class="page-info" id="pageInfo">Page 1</span>
+            <button class="page-btn" id="nextBtn" onclick="nextPage()">Next</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div>
+                <h3 id="modalTicketId">Ticket</h3>
+                <div class="modal-badges" id="modalBadges"></div>
+            </div>
+            <button class="close-btn" onclick="closeModalDirect()">x</button>
+        </div>
+        <div class="modal-info" id="modalInfo"></div>
+        <div class="chat-area" id="modalChat"></div>
+        <div class="modal-footer">
+            <div class="suggested-box" id="suggestedBox" style="display:none">
+                <div class="suggested-label">AI Suggested Response</div>
+                <div id="suggestedText"></div>
+            </div>
+            <div class="chat-input-row">
+                <textarea class="chat-input" id="agentInput"
+                    placeholder="Type your response to the customer..."
+                    rows="2"
+                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAgentMessage();}"></textarea>
+                <button class="send-btn" onclick="sendAgentMessage()">Send</button>
+            </div>
+            <div class="action-row">
+                <button class="action-btn btn-suggest"  onclick="useSuggestion()">Use AI Suggestion</button>
+                <button class="action-btn btn-resolve"  onclick="resolveTicket()">Mark Resolved</button>
+                <button class="action-btn btn-escalate" onclick="escalateTicket()">Escalate</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = window.API_BASE || 'http://127.0.0.1:8000';
+    const PAGE_SIZE = 50;
+
+    let currentPage     = 0;
+    let currentSentiment = null;
+    let currentStatus    = null;
+    let totalPages       = 1;
+    let currentTicketId  = null;
+    let currentWs        = null;
+    let trendChart       = null;
+    let pieChart         = null;
+
+    // ── Load everything ──────────────────────────────────────
+    async function loadAll() {
+        await loadStats();
+        await loadTickets();
+        await loadAlerts();
+    }
+
+    // ── Stats ────────────────────────────────────────────────
+    async function loadStats() {
+        try {
+            const res  = await fetch(`${API}/admin/stats`);
+            const data = await res.json();
+
+            const neg   = data.total_counts['Negative'] || 0;
+            const neu   = data.total_counts['Neutral']  || 0;
+            const pos   = data.total_counts['Positive'] || 0;
+            const total = neg + neu + pos;
+
+            document.getElementById('negCount').textContent  = neg;
+            document.getElementById('neuCount').textContent  = neu;
+            document.getElementById('posCount').textContent  = pos;
+            document.getElementById('negToday').textContent  = `Today: ${data.today_counts['Negative'] || 0}`;
+            document.getElementById('neuToday').textContent  = `Today: ${data.today_counts['Neutral']  || 0}`;
+            document.getElementById('posToday').textContent  = `Today: ${data.today_counts['Positive'] || 0}`;
+            document.getElementById('openCount').textContent  = data.open_tickets || 0;
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('avgSat').textContent     = data.avg_satisfaction ? `${data.avg_satisfaction}/5` : 'N/A';
+
+            buildTrendChart(data.trend);
+            buildPieChart(neg, neu, pos);
+        } catch(e) { console.error('Stats error:', e); }
+    }
+
+    function buildTrendChart(trend) {
+        const dates   = [...new Set(trend.map(r => r.date))].sort();
+        const negData = dates.map(d => (trend.find(t => t.date===d && t.sentiment==='Negative') || {count:0}).count);
+        const neuData = dates.map(d => (trend.find(t => t.date===d && t.sentiment==='Neutral')  || {count:0}).count);
+        const posData = dates.map(d => (trend.find(t => t.date===d && t.sentiment==='Positive') || {count:0}).count);
+
+        if (trendChart) trendChart.destroy();
+        trendChart = new Chart(document.getElementById('trendChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [
+                    { label:'Negative', data:negData, borderColor:'#FF6363', backgroundColor:'rgba(255,99,99,0.1)',  tension:0.4, fill:true },
+                    { label:'Neutral',  data:neuData, borderColor:'#FFC107', backgroundColor:'rgba(255,193,7,0.1)',  tension:0.4, fill:true },
+                    { label:'Positive', data:posData, borderColor:'#10B981', backgroundColor:'rgba(16,185,129,0.1)', tension:0.4, fill:true },
+                ]
+            },
+            options: {
+                responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{ labels:{ color:'#94A3B8', font:{size:11} } } },
+                scales:{
+                    x:{ ticks:{color:'#64748B',font:{size:10}}, grid:{color:'rgba(255,255,255,0.05)'} },
+                    y:{ ticks:{color:'#64748B',font:{size:10}}, grid:{color:'rgba(255,255,255,0.05)'} }
+                }
+            }
+        });
+    }
+
+    function buildPieChart(neg, neu, pos) {
+        if (pieChart) pieChart.destroy();
+        pieChart = new Chart(document.getElementById('pieChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Negative','Neutral','Positive'],
+                datasets:[{ data:[neg,neu,pos], backgroundColor:['rgba(255,99,99,0.8)','rgba(255,193,7,0.8)','rgba(16,185,129,0.8)'], borderWidth:0 }]
+            },
+            options: {
+                responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{ labels:{ color:'#94A3B8', font:{size:11} } } }
+            }
+        });
+    }
+
+    // ── Tickets ──────────────────────────────────────────────
+    function setFilter(sentiment, status, btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentSentiment = sentiment === 'all' ? null : sentiment;
+        currentStatus    = status;
+        currentPage      = 0;
+        loadTickets();
+    }
+
+    async function loadTickets() {
+        try {
+            let url = `${API}/admin/tickets?limit=${PAGE_SIZE}&offset=${currentPage * PAGE_SIZE}`;
+            if (currentSentiment) url += `&sentiment=${currentSentiment}`;
+            if (currentStatus)    url += `&status=${currentStatus}`;
+
+            const res  = await fetch(url);
+            const data = await res.json();
+
+            totalPages = data.pages || 1;
+            renderTickets(data.tickets || []);
+            updatePagination(data.total || 0);
+        } catch(e) { console.error('Tickets error:', e); }
+    }
+
+    function renderTickets(tickets) {
+        const tbody = document.getElementById('ticketBody');
+        document.getElementById('queueCount').textContent = tickets.length;
+
+        if (!tickets.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No tickets found</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = tickets.map(t => `
+            <tr onclick="openTicket('${t.ticket_id}')">
+                <td style="font-weight:600;color:#38BDF8;">${t.ticket_id}</td>
+                <td><span class="sentiment-tag ${t.sentiment}">${t.sentiment || 'N/A'}</span></td>
+                <td><span class="priority-badge ${t.priority}">${t.priority || 'N/A'}</span></td>
+                <td><div class="preview-text">${t.review_text || ''}</div></td>
+                <td><span class="status-dot ${t.status}"></span>${t.status || 'open'}</td>
+                <td style="color:#64748B;font-size:0.8rem;">${formatTime(t.timestamp)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function updatePagination(total) {
+        const start = currentPage * PAGE_SIZE + 1;
+        const end   = Math.min((currentPage + 1) * PAGE_SIZE, total);
+        document.getElementById('pageInfo').textContent  = `${start}-${end} of ${total}`;
+        document.getElementById('prevBtn').disabled = currentPage === 0;
+        document.getElementById('nextBtn').disabled = (currentPage + 1) >= totalPages;
+    }
+
+    function prevPage() {
+        if (currentPage > 0) { currentPage--; loadTickets(); }
+    }
+    function nextPage() {
+        if ((currentPage + 1) < totalPages) { currentPage++; loadTickets(); }
+    }
+
+    // ── Ticket modal ─────────────────────────────────────────
+    async function openTicket(ticketId) {
+        currentTicketId = ticketId;
+        try {
+            const res  = await fetch(`${API}/admin/ticket/${ticketId}`);
+            const data = await res.json();
+            const t    = data.ticket;
+            const msgs = data.messages || [];
+
+            document.getElementById('modalTicketId').textContent = ticketId;
+            document.getElementById('modalBadges').innerHTML = `
+                <span class="priority-badge ${t.priority}">${t.priority}</span>
+                <span class="sentiment-tag ${t.sentiment}" style="margin-left:8px;">${t.sentiment}</span>
+            `;
+            document.getElementById('modalInfo').innerHTML = `
+                <div class="info-item">Confidence: <span>${t.confidence}%</span></div>
+                <div class="info-item">Status: <span>${t.status}</span></div>
+                <div class="info-item">Time: <span>${formatTime(t.timestamp)}</span></div>
+                ${t.satisfaction ? `<div class="info-item">Rating: <span>${'★'.repeat(t.satisfaction)}</span></div>` : ''}
+            `;
+
+            if (t.suggested_response) {
+                document.getElementById('suggestedBox').style.display = 'block';
+                document.getElementById('suggestedText').textContent  = t.suggested_response;
+            }
+
+            renderMessages(msgs);
+            connectWebSocket(ticketId);
+            document.getElementById('modalOverlay').classList.add('show');
+        } catch(e) { console.error('Ticket detail error:', e); }
+    }
+
+    function renderMessages(messages) {
+        const chat = document.getElementById('modalChat');
+        if (!messages.length) {
+            chat.innerHTML = '<div class="empty-state">No messages yet</div>';
+            return;
+        }
+        chat.innerHTML = messages.map(m => `
+            <div class="chat-msg ${m.sender}">
+                <div>
+                    <div class="msg-sender">${m.sender === 'agent' ? 'Agent' : m.sender === 'bot' ? 'LensWord Bot' : 'Customer'}</div>
+                    <div class="msg-bubble">${m.message}</div>
+                </div>
+            </div>
+        `).join('');
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    function connectWebSocket(ticketId) {
+        if (currentWs) currentWs.close();
+        const wsUrl = API.replace('http', 'ws');
+        currentWs = new WebSocket(`${wsUrl}/ws/${ticketId}`);
+        currentWs.onmessage = (event) => {
+            const msg  = JSON.parse(event.data);
+            const chat = document.getElementById('modalChat');
+            const div  = document.createElement('div');
+            div.className = `chat-msg ${msg.sender}`;
+            div.innerHTML = `
+                <div>
+                    <div class="msg-sender">${msg.sender === 'agent' ? 'Agent' : 'Customer'}</div>
+                    <div class="msg-bubble">${msg.message}</div>
+                </div>
+            `;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        };
+    }
+
+    async function sendAgentMessage() {
+        const input   = document.getElementById('agentInput');
+        const message = input.value.trim();
+        if (!message || !currentTicketId) return;
+        input.value = '';
+        try {
+            await fetch(`${API}/message`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticket_id: currentTicketId, sender: 'agent', message })
+            });
+        } catch(e) { console.error('Send error:', e); }
+    }
+
+    function useSuggestion() {
+        document.getElementById('agentInput').value = document.getElementById('suggestedText').textContent;
+        document.getElementById('agentInput').focus();
+    }
+
+    async function resolveTicket() {
+        if (!currentTicketId) return;
+        await fetch(`${API}/ticket/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ticket_id: currentTicketId, status: 'resolved' })
+        });
+        closeModalDirect();
+        loadAll();
+    }
+
+    async function escalateTicket() {
+        if (!currentTicketId) return;
+        await fetch(`${API}/ticket/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ticket_id: currentTicketId, status: 'escalated' })
+        });
+        closeModalDirect();
+        loadAll();
+    }
+
+    function closeModal(e) {
+        if (e.target === document.getElementById('modalOverlay')) closeModalDirect();
+    }
+    function closeModalDirect() {
+        document.getElementById('modalOverlay').classList.remove('show');
+        if (currentWs) { currentWs.close(); currentWs = null; }
+        currentTicketId = null;
+    }
+
+    // ── Alerts ───────────────────────────────────────────────
+    async function loadAlerts() {
+        try {
+            const res    = await fetch(`${API}/admin/alerts`);
+            const alerts = await res.json();
+            if (alerts.length) {
+                document.getElementById('alertBar').classList.add('show');
+                document.getElementById('alertText').textContent = alerts[0].message;
+            }
+        } catch(e) {}
+    }
+
+    function formatTime(ts) {
+        if (!ts) return '';
+        const d = new Date(ts);
+        return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+    }
+
+    loadAll();
+    setInterval(loadAll, 30000);
+</script>
+</body>
+</html>
