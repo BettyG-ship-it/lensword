@@ -17,6 +17,29 @@ LensWord reads each review, figures out the sentiment, tells you how urgent it i
 
 ---
 
+## Screenshots
+
+**Business Dashboard -- sentiment analysis with LIME word explanation**
+![Business Dashboard](screenshots/dashboard.png)
+
+**Customer Chat -- LangGraph conversation in action**
+![Customer Chat](screenshots/customer_chat.png)
+
+**Admin Dashboard -- live ticket queue with charts**
+![Admin Dashboard](screenshots/admin_dashboard.png)
+
+**Admin Ticket Modal -- agent live chat with customer**
+![Admin Ticket](screenshots/admin_ticket.png)
+
+---
+
+## Demo Video
+
+Watch the full system demo: [LensWord Demo Video]
+(https://www.loom.com/share/80fcb0f5cfed401ea120cba5610b4ef9)
+
+---
+
 ## What we built
 
 The project has three interfaces serving different audiences.
@@ -135,6 +158,10 @@ lensword/
 │   ├── knowledge_base.csv           -- 33 RAG entries
 │   └── .env                        -- Groq key (never committed)
 ├── screenshots/
+│   ├── dashboard.png          -- business dashboard with LIME chips
+│   ├── customer_chat.png      -- customer conversation in progress
+│   ├── admin_dashboard.png    -- admin ticket queue with charts
+│   └── admin_ticket.png       -- agent live chat modal
 ├── admin.html                       -- admin support dashboard
 ├── index.html                       -- business dashboard
 ├── customer.html                    -- customer chat
@@ -202,4 +229,4 @@ This project was completed as part of the AI/ML Engineering Program at Apeiron A
 ---
 
 Betty George and Miheret Woldegabrial
-AI/ML Engineering Program, Apeiron AI Training, July 2026
+AI/ML Engineering Program, July 2026

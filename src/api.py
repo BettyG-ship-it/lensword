@@ -715,6 +715,8 @@ async def escalate_chat(request: EscalateRequest):
 @app.post("/message")
 async def save_chat_message(request: MessageRequest):
     save_message(request.ticket_id, request.sender, request.message)
+    # Broadcast all messages -- admin.html ignores agent messages
+    # in its onmessage handler to prevent the loop
     await manager.broadcast(request.ticket_id, {
         "sender":    request.sender,
         "message":   request.message,

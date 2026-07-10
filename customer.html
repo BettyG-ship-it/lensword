@@ -227,8 +227,10 @@
         chat.appendChild(div);
         chat.scrollTop = chat.scrollHeight;
 
-        // Save to DB
-        if (currentTicketId && type !== 'bot') {
+        // Save to DB -- only save customer messages
+        // Agent messages come FROM the server so they are already saved
+        // Saving them again would re-broadcast and cause an infinite loop
+        if (currentTicketId && type === 'customer') {
             fetch(`${API_BASE}/message`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -367,8 +369,12 @@
         }
     }
 
+    let isProcessing = false;
+
     async function continueConversation(customerMessage) {
         if (!currentTicketId || conversationState === 'resolved' || conversationState === 'escalated') return;
+        if (isProcessing) return;  // prevent multiple simultaneous calls
+        isProcessing = true;
 
         showTyping();
 
@@ -400,6 +406,8 @@
         } catch(e) {
             removeTyping();
             addMessage("Sorry, I had a bit of trouble processing that. Could you try again?", 'bot');
+        } finally {
+            isProcessing = false;  // always release guard
         }
     }
 
