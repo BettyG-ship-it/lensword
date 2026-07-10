@@ -273,7 +273,8 @@
 </div>
 
 <script>
-    const API = window.API_BASE || 'http://127.0.0.1:8000';
+    const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
+    const API = API_BASE; // alias for backward compatibility
     const PAGE_SIZE = 50;
 
     let currentPage     = 0;
@@ -473,11 +474,23 @@
 
     function connectWebSocket(ticketId) {
         if (currentWs) currentWs.close();
-        const wsUrl = API.replace('http', 'ws');
+        const wsUrl = API_BASE.replace('http', 'ws');
         currentWs = new WebSocket(`${wsUrl}/ws/${ticketId}`);
         currentWs.onmessage = (event) => {
             const msg  = JSON.parse(event.data);
+
+            // Handle escalation notification
+            if (msg.type === 'escalation') {
+                loadAll(); // refresh ticket queue to show escalated status
+                return;
+            }
+
+            // Only show messages that have a sender and message
+            if (!msg.sender || !msg.message) return;
+
             const chat = document.getElementById('modalChat');
+            if (!chat) return;
+
             const div  = document.createElement('div');
             div.className = `chat-msg ${msg.sender}`;
             div.innerHTML = `

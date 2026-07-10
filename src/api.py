@@ -55,9 +55,11 @@ class ConnectionManager:
         if ticket_id in self.active:
             self.active[ticket_id].remove(websocket)
 
-    async def broadcast(self, ticket_id: str, message: dict):
+    async def broadcast(self, ticket_id: str, message: dict, exclude: WebSocket = None):
         if ticket_id in self.active:
             for ws in self.active[ticket_id]:
+                if ws is exclude:
+                    continue
                 try:
                     await ws.send_text(json.dumps(message))
                 except Exception:
@@ -171,11 +173,16 @@ def is_product_review_groq(text: str) -> bool:
             messages=[
                 {
                     "role": "system",
-                    "content": "You decide if text is a product or service review. Reply only YES or NO."
+                    "content": (
+                        "You decide if text is related to a product, service, or customer experience. "
+                        "Be generous -- short complaints, opinions about products, and feedback all count. "
+                        "Only reply NO for completely unrelated text like random words, greetings, or spam. "
+                        "Reply only YES or NO."
+                    )
                 },
                 {
                     "role": "user",
-                    "content": f"Is this a product or service review?\n\n'{text}'"
+                    "content": f"Is this related to a product, service, or customer experience?\n\n'{text}'"
                 }
             ]
         )
@@ -184,7 +191,7 @@ def is_product_review_groq(text: str) -> bool:
     except Exception:
         # Fallback to vocabulary check if Groq fails
         words = text.lower().split()
-        if len(words) < 4:
+        if len(words) < 3:
             return False
         review_indicators = [
             'product', 'item', 'order', 'bought', 'purchased', 'shipping',
@@ -194,7 +201,7 @@ def is_product_review_groq(text: str) -> bool:
             'satisfied', 'recommend', 'waste', 'money', 'price', 'worth',
             'service', 'customer', 'seller', 'package', 'damaged', 'missing',
             'wrong', 'perfect', 'happy', 'unhappy', 'experience', 'use',
-            'problem', 'issue', 'defective', 'stopped', 'working'
+            'problem', 'issue', 'defective', 'stopped', 'working', 'this'
         ]
         return any(w in review_indicators for w in words)
 
@@ -395,8 +402,8 @@ def get_explanation(text: str, num_features: int = 6) -> list:
                 try:
                     c  = clean_text(t)
                     sq = text_to_sequence(c, word2idx)
-                    pd = pad_sequence(sq, MAX_SEQ_LENGTH)
-                    tn = torch.tensor([pd], dtype=torch.long)
+                    padded_seq = pad_sequence(sq, MAX_SEQ_LENGTH)
+                    tn = torch.tensor([padded_seq], dtype=torch.long)
                     with torch.no_grad():
                         out   = model(tn)
                         probs = torch.softmax(out, dim=1)
@@ -559,7 +566,10 @@ def predict_sentiment(request: ReviewRequest):
     }
 
     # Compute final sentiment BEFORE RAG so everything uses the correct sentiment
-    final_sentiment = request.override_sentiment if request.override_sentiment else sentiment
+    # Validate override_sentiment -- only accept known values, ignore anything else
+    valid_sentiments = {'Negative', 'Neutral', 'Positive'}
+    override = request.override_sentiment if request.override_sentiment in valid_sentiments else None
+    final_sentiment = override if override else sentiment
     final_priority  = actions[final_sentiment]['priority']
     final_action    = actions[final_sentiment]['action']
 
@@ -763,11 +773,17 @@ async def websocket_endpoint(websocket: WebSocket, ticket_id: str):
         while True:
             data = await websocket.receive_text()
             msg  = json.loads(data)
-            save_message(ticket_id, msg.get('sender', 'unknown'), msg.get('message', ''))
+            sender  = msg.get('sender', 'unknown')
+            message = msg.get('message', '')
+            if message.strip():  # only save non-empty messages
+                save_message(ticket_id, sender, message)
             await manager.broadcast(ticket_id, {
                 "sender":    msg.get('sender'),
                 "message":   msg.get('message'),
                 "timestamp": datetime.now().isoformat()
-            })
+            }, exclude=websocket)
     except WebSocketDisconnect:
+        manager.disconnect(ticket_id, websocket)
+    except Exception as e:
+        print(f"WebSocket error: {e}")
         manager.disconnect(ticket_id, websocket)
