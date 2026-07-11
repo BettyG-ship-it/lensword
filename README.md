@@ -35,8 +35,8 @@ LensWord reads each review, figures out the sentiment, tells you how urgent it i
 
 ## Demo Video
 
-Watch the full system demo: [LensWord_Demo.mp4](LensWord_Demo.mp4)
-
+Watch the full system demo: LiveDemo
+(https://www.loom.com/share/80fcb0f5cfed401ea120cba5610b4ef9)
 ---
 
 ## What we built
