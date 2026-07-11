@@ -35,8 +35,7 @@ LensWord reads each review, figures out the sentiment, tells you how urgent it i
 
 ## Demo Video
 
-Watch the full system demo: [LensWord Demo Video]
-(https://www.loom.com/share/80fcb0f5cfed401ea120cba5610b4ef9)
+Watch the full system demo: [LensWord_Demo.mp4](LensWord_Demo.mp4)
 
 ---
 
@@ -87,23 +86,34 @@ Per-class F1 for seed 42:
 
 We also fine-tuned DistilBERT on our dataset (Notebook 06). It handles negation much better than the BiLSTM.
 
-| Model | Accuracy | Macro F1 |
-|---|---|---|
-| BiLSTM (trained) | 72.62% | 0.7263 |
+| Model | Accuracy | Macro F1 | Neg F1 | Neu F1 | Pos F1 |
+|---|---|---|---|---|---|
+| DistilBERT fine-tuned | 80.29% | 0.8082 | 0.8126 | 0.7490 | 0.8630 |
 | DistilBERT fine-tuned | 80.29% | 0.8082 |
-| NLPTown (zero-shot) | 72.52% | 0.7115 |
-| LiYuan (zero-shot) | 64.47% | 0.6241 |
-| CardiffNLP (zero-shot) | 60.68% | 0.5399 |
+| NLPTown (zero-shot) | 72.52% | 0.7115 | -- | -- | -- |
+| LiYuan (zero-shot) | 64.47% | 0.6241 | -- | -- | -- |
+| CardiffNLP (zero-shot) | 60.68% | 0.5399 | -- | -- | -- |
 
 The HuggingFace models are evaluated zero-shot. They never saw our data or our label rules. Our models were trained on this exact distribution so the comparison is not perfectly fair. We state that clearly everywhere.
 
 ---
 
+## The data
+
+We combined two datasets. Amazon Alexa Reviews from Kaggle gave us 3,149 reviews. Yelp Reviews from HuggingFace gave us 8,000 sampled reviews. After removing 850 duplicate rows we had 10,299 reviews total.
+
+Split:
+- Training: 7,720 reviews
+- Validation: 1,544 reviews
+- Test: 1,030 reviews
+
+The test set was saved to test_texts.csv at split time and never touched until final evaluation.
+
 ## Why numbers changed from earlier runs
 
 Our first pipeline run reported 88.85% accuracy and 88.40% Macro F1. After a full advisor review we found four problems that inflated those numbers.
 
-About 6,000 duplicate Yelp rows were split across training and test. The model was being tested on reviews it had already seen. We also built the vocabulary before splitting the data, which means test words influenced the vocabulary. We saved the model checkpoint based on accuracy instead of Macro F1, which meant we shipped the most overfit version. And we applied SMOTE to token sequences, which is invalid because token indices are nominal data.
+Duplicate Yelp rows were split across training and test. The model was being tested on reviews it had already seen. We also built the vocabulary before splitting the data, which means test words influenced the vocabulary. We saved the model checkpoint based on accuracy instead of Macro F1, which meant we shipped the most overfit version. And we applied SMOTE to token sequences, which is invalid because token indices are nominal data.
 
 We fixed all four, rebuilt the pipeline from scratch, and the honest results are what you see above. The explanation of what went wrong is more valuable than the inflated number ever was.
 
@@ -210,6 +220,10 @@ docker run -e GROQ_API_KEY=your-key -p 8000:8000 lensword
 
 ---
 
+## Protection guards
+
+LensWord has 18 protection guards across four layers to handle bad input, weak predictions, escalations, and security threats. These cover empty input, out-of-domain text, low confidence predictions, strong word overrides, SQL injection prevention, and Docker security.
+
 ## Known limitations
 
 The BiLSTM struggles with negation. "I hate this product" was sometimes classified as Positive because "hate" appeared rarely in our training data. We handle this at the application layer with word overrides and confidence thresholds. DistilBERT fine-tuning fixes it properly at the model level.
@@ -218,7 +232,7 @@ Neutral is our weakest class (F1: 0.6396). Three-star reviews are genuinely ambi
 
 The knowledge base has 33 entries. A production system would need hundreds based on real customer service logs.
 
-The system only handles English reviews.
+The system only handles English reviews. Vocabulary size is 4,340 words fitted on training data only. Rare words become unknown tokens.
 
 ---
 
@@ -229,4 +243,4 @@ This project was completed as part of the AI/ML Engineering Program at Apeiron A
 ---
 
 Betty George and Miheret Woldegabrial
-AI/ML Engineering Program, July 2026
+AI/ML Engineering Program, Apeiron AI Training, July 2026
